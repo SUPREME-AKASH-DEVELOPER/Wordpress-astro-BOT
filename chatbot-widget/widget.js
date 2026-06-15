@@ -175,9 +175,17 @@
     + '.cb-input-bar input{flex:1;border:1.5px solid rgba(255,255,255,.5);outline:none;border-radius:24px;padding:10px 16px;font-family:"Outfit",sans-serif;font-size:13.5px;color:#111827;background:rgba(255,255,255,.82);transition:border-color .2s,box-shadow .2s;}'
     + '.cb-input-bar input:focus{border-color:#0154B1;background:rgba(255,255,255,.95);box-shadow:0 0 0 3px rgba(1,84,177,.1);}'
     + '.cb-input-bar input::placeholder{color:#aab0bc;}'
-    + '.cb-input-bar button{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0154B1,#1a7fe8);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;box-shadow:0 3px 10px rgba(1,84,177,.32);}'
+    + '.cb-input-bar button{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;color:#fff!important;border:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;transition:all .2s;box-shadow:0 3px 10px rgba(1,84,177,.32)!important;opacity:1!important;visibility:visible!important;overflow:visible!important;padding:0!important;}'
     + '.cb-input-bar button:hover{transform:scale(1.08);}'
     + '.cb-input-bar button:active{transform:scale(.95);}'
+    + '#cb-send svg{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;flex-shrink:0!important;opacity:1!important;visibility:visible!important;overflow:visible!important;fill:none!important;stroke:#fff!important;stroke-width:2.5!important;pointer-events:none!important;}'
+    + '#cb-send svg *{stroke:#fff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
+    /* High-specificity, widget-scoped overrides: guarantee the send button
+       and its arrow icon survive any host theme CSS (WordPress, Elementor,
+       Divi, custom themes), regardless of how that CSS targets buttons/svgs. */
+    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;border:none!important;display:flex!important;align-items:center!important;justify-content:center!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#fff!important;}'
+    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;fill:none!important;stroke:#ffffff!important;stroke-width:2.5!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#ffffff!important;}'
+    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon *{stroke:#ffffff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
     + '.cb-schedule{display:none;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff!important;font-weight:700;font-size:13.5px;font-family:"Outfit",sans-serif;text-decoration:none!important;padding:13px;letter-spacing:.2px;transition:filter .2s;flex-shrink:0;}'
     + '.cb-schedule:hover{filter:brightness(.92);}'
     + '@media (max-width:480px){#lead-bot{bottom:0;right:0;left:0;width:100%;animation:none;}.cb-card{width:100%;border-radius:24px 24px 0 0;max-height:88vh;overflow:hidden;border:none;}.cb-body{max-height:42vh!important;}.cb-qbtns button,.cb-bbtns button{font-size:12px!important;padding:9px 10px!important;}.cb-input-bar input{font-size:13px;box-sizing:border-box;}#cb-greeting-bubble{right:8px;bottom:100px;max-width:calc(100vw - 80px);}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}}';
@@ -260,9 +268,9 @@
         '</div>' +
         '<div class="cb-input-bar" id="cb-input-bar" style="display:none!important;">' +
           '<input type="text" id="cb-input" placeholder="Type here..." autocomplete="off" />' +
-          '<button id="cb-send" aria-label="Send">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-              '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>' +
+          '<button id="cb-send" aria-label="Send" style="opacity:1!important;visibility:visible!important;">' +
+            '<svg id="cb-send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;opacity:1!important;visibility:visible!important;">' +
+              '<line x1="12" y1="19" x2="12" y2="5" style="stroke:#fff!important;opacity:1!important;"/><polyline points="5 12 12 5 19 12" style="stroke:#fff!important;opacity:1!important;"/>' +
             '</svg>' +
           '</button>' +
         '</div>' +

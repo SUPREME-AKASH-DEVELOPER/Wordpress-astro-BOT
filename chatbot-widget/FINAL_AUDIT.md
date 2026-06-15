@@ -124,12 +124,12 @@ Payload sent by `widget.js` → `submitLead()`:
 
 Both templates reference:
 ```html
-<img src="https://YOUR-VERCEL-DEPLOYMENT.vercel.app/Logo3-768x137.webp" width="160" height="24" ...>
+<img src="https://wordpress-astro-bot.vercel.app/Logo3-768x137.webp" width="160" height="24" ...>
 ```
 
 - Not a `data:` base64 URI (Gmail-safe).
 - Not a `cid:` attachment.
-- This is the **one placeholder URL remaining** — see "Remaining Blockers" below.
+- Updated to the live deployment domain and verified returning `200 (image/webp)`. See "Remaining Blockers" below.
 
 ---
 
@@ -240,35 +240,48 @@ a leaner deployment is preferred, but this is not required.)
 ## 10. Deployment Instructions
 
 1. From `chatbot-widget/`, run `vercel` (or connect the folder as a new
-   Vercel project via the dashboard / Git).
+   Vercel project via the dashboard / Git). — **Done.** Deployed to
+   `https://wordpress-astro-bot.vercel.app`.
 2. No build command, no install command, no output directory override needed
    — it's a static root.
-3. Once deployed, note the assigned domain (e.g. `https://demski-chatbot-widget.vercel.app`).
-4. **Required post-deploy edit** (the one remaining blocker — see below):
-   replace `YOUR-VERCEL-DEPLOYMENT.vercel.app` in both files under
-   `email-templates/` with the real domain from step 3, then paste the
-   updated HTML into the corresponding EmailJS dashboard templates
-   (`template_c6hi8ir` and `template_7kz7hgj`).
+3. Once deployed, note the assigned domain. — **Done:**
+   `https://wordpress-astro-bot.vercel.app`.
+4. **Post-deploy edit** — replace `YOUR-VERCEL-DEPLOYMENT.vercel.app` in both
+   files under `email-templates/` with the real domain from step 3. —
+   **Done.** Both templates now reference
+   `https://wordpress-astro-bot.vercel.app/Logo3-768x137.webp`, verified live
+   (HTTP 200, `image/webp`). **Still pending:** paste the updated HTML into
+   the corresponding EmailJS dashboard templates (`template_c6hi8ir` and
+   `template_7kz7hgj`) — requires EmailJS dashboard access.
 5. Embed on any site:
    ```html
-   <script src="https://<your-domain>/loader.js" data-widget-src="https://<your-domain>/widget.js" async></script>
+   <script src="https://wordpress-astro-bot.vercel.app/loader.js" data-widget-src="https://wordpress-astro-bot.vercel.app/widget.js" async></script>
    ```
 
 ---
 
 ## 11. Remaining Blockers
 
-**One non-blocking, expected post-deploy step:**
+**Deployment is live and verified:**
 
-- `email-templates/chatbot-lead-notification.html` and
-  `email-templates/chatbot-lead-confirmation.html` both contain the
-  placeholder domain `https://YOUR-VERCEL-DEPLOYMENT.vercel.app/Logo3-768x137.webp`
-  for the logo `<img src>`. This **cannot** be resolved before deployment
-  because the real Vercel URL doesn't exist yet. This is documented in both
-  `PRODUCTION_READINESS_REPORT.md` and step 4 above as the single required
-  action after the first deploy. It does not block deployment of
-  `chatbot-widget/` itself — it only affects the email templates, which live
-  in the EmailJS dashboard (separate system), not in the deployed widget
+- `chatbot-widget/` deployed to `https://wordpress-astro-bot.vercel.app`.
+  Verified live: `/` → 200, `/loader.js` → 200 (`application/javascript`),
+  `/widget.js` → 200 (`application/javascript`),
+  `/Logo3-768x137.webp` → 200 (`image/webp`).
+- The logo `<img src>` placeholder in both
+  `email-templates/chatbot-lead-notification.html` and
+  `email-templates/chatbot-lead-confirmation.html` has been updated from
+  `https://YOUR-VERCEL-DEPLOYMENT.vercel.app/Logo3-768x137.webp` to
+  `https://wordpress-astro-bot.vercel.app/Logo3-768x137.webp` and confirmed
+  live. **RESOLVED.**
+
+**One remaining action, outside this codebase:**
+
+- Paste the updated HTML from both templates into the corresponding EmailJS
+  dashboard templates (`template_c6hi8ir` for the lead notification,
+  `template_7kz7hgj` for the confirmation) and verify `{{...}}` variables
+  match exactly. This requires EmailJS dashboard access and is not performed
+  here — it lives in a separate system (EmailJS), not in the deployed widget
   runtime.
 
 No other blockers identified.
@@ -287,7 +300,8 @@ No other blockers identified.
 | Production cleanup | **PASS** |
 | Portability (zip & move) | **PASS** |
 
-**Overall: PASS** — `chatbot-widget/` is self-contained, portable, and ready
-for direct Vercel deployment. The only outstanding item is the post-deploy
-logo URL substitution in the EmailJS templates, which is expected and
-documented.
+**Overall: PASS** — `chatbot-widget/` is self-contained, portable, deployed,
+and verified live at `https://wordpress-astro-bot.vercel.app`. The only
+outstanding item is pasting the updated email template HTML into the EmailJS
+dashboard (`template_c6hi8ir`, `template_7kz7hgj`), which requires dashboard
+access outside this codebase.

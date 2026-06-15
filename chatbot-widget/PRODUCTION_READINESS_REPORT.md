@@ -24,7 +24,7 @@ configured, per instructions.
 | UTM/GCLID capture & persistence | PASS | Captured from URL query string, merged with `localStorage['cb_utm']`, persists across page loads. |
 | Internal lead notification email template | PASS | Converted to EmailJS `{{placeholder}}` template; all 16 fields mapped; branded layout (accent bar, badge, sections, CTA button, footer) preserved. Added missing **Budget**, **Next Step**, and **Campaign Tracking (UTM/GCLID)** sections that were absent from the original hardcoded sample. |
 | Lead confirmation email template | PASS | New branded template created (`chatbot-lead-confirmation.html`) matching the same design system; maps the 3 fields actually sent by `submitLead()` (`user_name`, `user_email`, `cta_choice`). |
-| Email logo | ACTION NEEDED (post-deploy) | Replaced base64 data-URI logo with hosted `<img src="https://YOUR-VERCEL-DEPLOYMENT.vercel.app/Logo3-768x137.webp" width="160" height="24">` in both templates. Placeholder domain must be swapped for the real Vercel URL after deployment (see below). |
+| Email logo | PASS | Replaced base64 data-URI logo with hosted `<img src="https://wordpress-astro-bot.vercel.app/Logo3-768x137.webp" width="160" height="24">` in both templates. URL updated to the live deployment domain and verified returning HTTP 200 (`image/webp`). |
 | Error handling — invalid name | PASS | "A" → "Could you enter your full name please?" |
 | Error handling — invalid phone | PASS | "123" → "That doesn't look like a valid phone number. Could you double-check?" |
 | Error handling — invalid email | PASS | "not-an-email" → "That doesn't look right..."; recovers correctly when corrected, proceeds to CTA. |
@@ -59,8 +59,8 @@ See `FINAL_AUDIT.md` for the most recent self-containment/portability audit.
 
 ```html
 <script
-  src="https://YOUR-DEPLOYMENT.vercel.app/loader.js"
-  data-widget-src="https://YOUR-DEPLOYMENT.vercel.app/widget.js"
+  src="https://wordpress-astro-bot.vercel.app/loader.js"
+  data-widget-src="https://wordpress-astro-bot.vercel.app/widget.js"
   async></script>
 ```
 
@@ -68,15 +68,17 @@ Optional overrides via `data-*` attributes: `data-avatar`, `data-avatar-fallback
 `data-calendly`, `data-ejs-key`, `data-ejs-service`, `data-ejs-lead-template`,
 `data-ejs-confirm-template`, `data-bot-name`, `data-bot-title`.
 
-## Post-Deploy Steps (required)
+## Post-Deploy Steps
 
-1. **Deploy `chatbot-widget/` to Vercel** (static project, no build command needed).
+1. **Deploy `chatbot-widget/` to Vercel** (static project, no build command needed). — **Done.** Live at `https://wordpress-astro-bot.vercel.app`.
 2. **Update email template logos** — in both
    `email-templates/chatbot-lead-notification.html` and
    `email-templates/chatbot-lead-confirmation.html`, replace
    `https://YOUR-VERCEL-DEPLOYMENT.vercel.app/Logo3-768x137.webp` with the real
-   deployment URL (e.g. `https://demski-chatbot-widget.vercel.app/Logo3-768x137.webp`).
-3. **Update EmailJS templates in the EmailJS dashboard** (not done here, per scope):
+   deployment URL. — **Done.** Both now reference
+   `https://wordpress-astro-bot.vercel.app/Logo3-768x137.webp`, verified live
+   (HTTP 200, `image/webp`).
+3. **Update EmailJS templates in the EmailJS dashboard** (still pending, requires dashboard access):
    - `template_c6hi8ir` (lead notification) — paste the updated HTML from
      `email-templates/chatbot-lead-notification.html`, ensure all `{{...}}`
      variables match exactly (case-sensitive): `name`, `email`, `phone`, `intent`,
