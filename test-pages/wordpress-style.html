@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WordPress Simulation — Demski Group</title>
+<!-- Simulate a typical WP theme: global resets, generic button/link styles, jQuery -->
+<style>
+  * { box-sizing: content-box; } /* many WP themes use content-box globally */
+  html, body { margin: 0; padding: 0; font-family: Georgia, serif; }
+  a { color: blue; text-decoration: underline; }
+  button { font-family: Georgia, serif; font-size: 16px; padding: 6px 10px; color: #333; }
+  img { max-width: 100%; height: auto; } /* common WP theme image rule */
+  .site-header { background: #222; color: #fff; padding: 20px; }
+  .site-content { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+  .widget-area { background: #f1f1f1; padding: 16px; margin-top: 20px; }
+  p { line-height: 1.8; margin-bottom: 1em; }
+  .entry-title { font-size: 32px; margin-bottom: 10px; }
+
+  /* Elementor / Astra / Divi-style global SVG + icon resets that commonly
+     conflict with embedded widgets */
+  svg { display: inline-block; vertical-align: middle; overflow: hidden; }
+  svg, path, line, polyline { fill: currentColor; stroke: currentColor; }
+  button svg { color: inherit; }
+  button, input, optgroup, select, textarea { color: #23282d; }
+  .elementor-widget-container button svg { width: 1em; height: 1em; }
+</style>
+</head>
+<body class="page page-id-2 wp-theme-twentytwentyfour">
+<header class="site-header">
+  <h1>The Demski Group</h1>
+  <nav><a href="#">Home</a> | <a href="#">Services</a> | <a href="#">Contact</a></nav>
+</header>
+
+<div class="site-content">
+  <article>
+    <h1 class="entry-title">Sample WordPress Page</h1>
+    <p>This page simulates a typical WordPress theme environment (Twenty Twenty-Four style): global <code>img { max-width:100% }</code> rules, <code>box-sizing: content-box</code>, serif body font, underlined links, and a widget sidebar. It exists to confirm the chatbot widget renders correctly even when the host page applies broad CSS resets that could otherwise clash with the widget's own styles (avatar sizing, button fonts, link decoration, etc.).</p>
+    <p>Embed method being tested: <strong>Custom HTML widget / Insert Headers and Footers</strong> — a single script tag placed before <code>&lt;/body&gt;</code>.</p>
+  </article>
+
+  <aside class="widget-area">
+    <h2>Recent Posts</h2>
+    <ul>
+      <li><a href="#">Why Your Business Needs a Custom App</a></li>
+      <li><a href="#">5 Signs You Need a Website Redesign</a></li>
+    </ul>
+  </aside>
+</div>
+
+<!-- jQuery, as bundled by most WP themes -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- Chatbot widget embed (Custom HTML / Insert Headers & Footers) -->
+<script src="../loader.js" data-widget-src="../widget.js" async></script>
+</body>
+</html>

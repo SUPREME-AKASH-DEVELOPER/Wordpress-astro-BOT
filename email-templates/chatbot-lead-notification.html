@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Chatbot Lead</title>
+<style>
+  @font-face {
+    font-family: 'GeneralSans';
+    src: url('https://wordpress-astro-bot.vercel.app/EMAIL%20NEW%20FORNT/GeneralSans-Regular.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'GeneralSans';
+    src: url('https://wordpress-astro-bot.vercel.app/EMAIL%20NEW%20FORNT/GeneralSans-Semibold.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#eef2f8; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+
+  <!-- Outer wrapper -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef2f8; padding:40px 0;">
+    <tr>
+      <td align="center">
+
+        <!-- Email card -->
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 8px 28px rgba(11,61,145,0.10);">
+
+          <!-- Top accent bar -->
+          <tr>
+            <td style="height:6px; background:linear-gradient(90deg, #0b3d91 0%, #1565c0 70%, #ff7a1a 100%); line-height:6px; font-size:0;">&nbsp;</td>
+          </tr>
+
+          <!-- Logo header -->
+          <tr>
+            <td style="padding:32px 40px 24px 40px; background-color:#ffffff; text-align:center; border-bottom:1px solid #f0f3f9;">
+              <img src="https://wordpress-astro-bot.vercel.app/Logo3-768x137.webp" width="160" height="24" alt="The Demski Group" style="display:block; margin:0 auto; border:0; height:24px; width:160px;">
+            </td>
+          </tr>
+
+          <!-- Title band -->
+          <tr>
+            <td style="padding:32px 40px 8px 40px;" align="center">
+              <span style="display:inline-block; background-color:#fff3e8; color:#d9650f; font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; padding:6px 16px; border-radius:20px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                New Lead
+              </span>
+              <div style="font-size:26px; line-height:1.3; font-weight:600; color:#10254a; margin-top:14px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                You've received a new chatbot inquiry
+              </div>
+              <div style="font-size:13px; color:#8a96b3; margin-top:6px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                Submitted via the website chatbot &middot; The Demski Group
+              </div>
+            </td>
+          </tr>
+
+          <!-- Contact details -->
+          <tr>
+            <td style="padding:28px 40px 8px 40px;">
+              <div style="font-size:12px; font-weight:600; color:#0b3d91; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #ff7a1a; display:inline-block; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                Contact Information
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px; color:#1a2b4a; margin-top:6px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                <tr>
+                  <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600;">Name</td>
+                  <td style="padding:10px 0; font-weight:600; color:#10254a;">{{name}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600;">Email</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">
+                    <a href="mailto:{{email}}" style="color:#1565c0; text-decoration:none; font-weight:600;">{{email}}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600;">Phone</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; font-weight:600;">
+                    <a href="tel:{{phone}}" style="color:#1a2b4a; text-decoration:none;">{{phone}}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Project details -->
+          <tr>
+            <td style="padding:24px 40px 8px 40px;">
+              <div style="font-size:12px; font-weight:600; color:#0b3d91; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #ff7a1a; display:inline-block; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                Project Details
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px; color:#1a2b4a; margin-top:6px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                <tr>
+                  <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600; vertical-align:top;">Interest</td>
+                  <td style="padding:10px 0;">{{intent}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Primary Goal</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{intent_detail}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Project Description</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{project_description}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Budget</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">
+                    <span style="display:inline-block; background-color:#e8f1ff; color:#1565c0; font-weight:600; font-size:13px; padding:5px 12px; border-radius:6px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                      {{budget}}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Next Step</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{cta_choice}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Source page -->
+          <tr>
+            <td style="padding:24px 40px 8px 40px;">
+              <div style="font-size:12px; font-weight:600; color:#0b3d91; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #ff7a1a; display:inline-block; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                Source Page
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px; color:#1a2b4a; margin-top:6px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                <tr>
+                  <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600; vertical-align:top;">Page Title</td>
+                  <td style="padding:10px 0;">{{page_name}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Page URL</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; word-break:break-all;">
+                    <a href="{{page}}" style="color:#1565c0; text-decoration:none;">{{page}}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Source</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">Website Chatbot</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Campaign tracking -->
+          <tr>
+            <td style="padding:24px 40px 8px 40px;">
+              <div style="font-size:12px; font-weight:600; color:#0b3d91; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #ff7a1a; display:inline-block; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                Campaign Tracking
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px; color:#1a2b4a; margin-top:6px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                <tr>
+                  <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Source</td>
+                  <td style="padding:10px 0;">{{utm_source}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Campaign</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_campaign}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Medium</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_medium}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Term</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_term}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Content</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_content}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">GCLID</td>
+                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; word-break:break-all;">{{gclid}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:32px 40px 8px 40px;" align="center">
+              <a href="mailto:{{email}}" style="display:inline-block; background-color:#0b3d91; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 40px; border-radius:8px; letter-spacing:0.3px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                Reply to This Lead
+              </a>
+              <div style="margin-top:14px;">
+                <a href="tel:{{phone}}" style="color:#ff7a1a; font-size:13px; font-weight:600; text-decoration:none; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                  or call {{phone}} &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:36px 40px 32px 40px; text-align:center;">
+              <div style="height:1px; background-color:#f0f3f9; margin-bottom:24px;"></div>
+              <div style="font-size:12px; color:#a7b1cb; line-height:1.7; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                This lead was automatically generated by the website chatbot on<br>
+                <a href="{{page}}" style="color:#1565c0; text-decoration:none;">{{page}}</a>
+              </div>
+              <div style="font-size:11px; color:#c7cee2; margin-top:16px; letter-spacing:0.5px; font-family:'GeneralSans','Segoe UI',Helvetica,Arial,sans-serif;">
+                &copy; 2026 The Demski Group. All rights reserved.
+              </div>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Email card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
