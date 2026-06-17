@@ -118,7 +118,7 @@
     + '#bot-launcher.cb-launcher-visible{opacity:1;transform:translateY(0) scale(1);}'
     + '#bot-launcher::before{content:"";position:absolute;inset:-3px;border-radius:50%;background:linear-gradient(135deg,#0154B1,#4facfe,#0154B1);z-index:-1;animation:cb-ring-spin 4s linear infinite;}'
     + '@keyframes cb-ring-spin{to{transform:rotate(360deg);}}'
-    + '#bot-launcher img{width:92px;height:92px;border-radius:50%;object-fit:cover;object-position:center 15%;border:3px solid #fff;box-shadow:0 6px 24px rgba(1,84,177,0.28);transition:transform .3s ease;}'
+    + '#bot-launcher img{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 6px 24px rgba(1,84,177,0.28);transition:transform .3s ease;}'
     + '#bot-launcher:hover img{transform:scale(1.06);}'
     + '.cb-online-dot{position:absolute;bottom:4px;right:4px;width:14px;height:14px;background:#22c55e;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 2px rgba(34,197,94,0.25);}'
     + '.cb-launcher-badge{position:absolute;top:2px;right:2px;width:22px;height:22px;background:#e53e3e;color:#fff;border-radius:50%;border:2px solid #fff;font-size:12px;font-weight:700;font-family:"Outfit",sans-serif;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(229,62,62,0.5);animation:cb-badge-pop .3s cubic-bezier(.34,1.56,.64,1) both;}'
@@ -150,7 +150,7 @@
     + '.cb-top-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;}'
     + '#cb-welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px 28px;background:transparent;flex:1;text-align:center;}'
     + '.cb-welcome-av-wrap{position:relative;display:inline-block;margin-bottom:14px;}'
-    + '.cb-welcome-av{width:80px;height:80px;border-radius:50%;object-fit:cover;object-position:center 15%;border:3px solid #fff;box-shadow:0 0 0 3px #0154B1,0 8px 28px rgba(1,84,177,.18);}'
+    + '.cb-welcome-av{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 0 0 3px #0154B1,0 8px 28px rgba(1,84,177,.18);}'
     + '.cb-welcome-dot{position:absolute;bottom:4px;right:4px;width:14px;height:14px;background:#22c55e;border-radius:50%;border:2.5px solid #fff;}'
     + '.cb-welcome-name{font-size:18px;font-weight:700;color:#111;margin-bottom:4px;}'
     + '.cb-welcome-role{font-size:12px;color:#888;margin-bottom:20px;}'
@@ -197,7 +197,7 @@
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon *{stroke:#ffffff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;stroke-width:2.5!important;}'
     + '.cb-schedule{display:none;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff!important;font-weight:700;font-size:13.5px;font-family:"Outfit",sans-serif;text-decoration:none!important;padding:13px;letter-spacing:.2px;transition:filter .2s;flex-shrink:0;}'
     + '.cb-schedule:hover{filter:brightness(.92);}'
-    + '@media (max-width:480px){#lead-bot{bottom:0;right:0;left:0;width:100%;animation:none;}.cb-card{width:100%;border-radius:24px 24px 0 0;max-height:88vh;overflow:hidden;border:none;}.cb-body{max-height:42vh!important;}.cb-qbtns button,.cb-bbtns button{font-size:12px!important;padding:9px 10px!important;}.cb-input-bar input{font-size:13px;box-sizing:border-box;}#cb-greeting-bubble{right:8px;bottom:100px;max-width:calc(100vw - 80px);}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;}#bot-launcher img{width:54px;height:54px;object-position:center 15%;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}}';
+    + '@media (max-width:480px){#lead-bot{bottom:0;right:0;left:0;width:100%;animation:none;}.cb-card{width:100%;border-radius:24px 24px 0 0;max-height:88vh;overflow:hidden;border:none;}.cb-body{max-height:42vh!important;}.cb-qbtns button,.cb-bbtns button{font-size:12px!important;padding:9px 10px!important;}.cb-input-bar input{font-size:13px;box-sizing:border-box;}#cb-greeting-bubble{right:8px;bottom:100px;max-width:calc(100vw - 80px);}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}}';
 
   function injectStyles() {
     if (!document.getElementById('cb-font-link')) {
