@@ -64,6 +64,7 @@
   /* ── STATE ── */
   var step = 0;
   var expanded = false;
+  var cardTimer = null;
   var idleTimer = null;
   var idleInterval = 60000;
   var awaitingIdleResponse = false;
@@ -124,14 +125,34 @@
     + '.cb-launcher-badge{position:absolute;top:2px;right:2px;width:22px;height:22px;background:#e53e3e;color:#fff;border-radius:50%;border:2px solid #fff;font-size:12px;font-weight:700;font-family:"Outfit",sans-serif;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(229,62,62,0.5);animation:cb-badge-pop .3s cubic-bezier(.34,1.56,.64,1) both;}'
     + '.cb-launcher-badge.cb-badge-on{display:flex!important;}'
     + '@keyframes cb-badge-pop{from{transform:scale(0);}to{transform:scale(1);}}'
-    + '#cb-greeting-bubble{position:fixed;bottom:110px;right:100px;z-index:2147483646;background:#fff;border-radius:16px 16px 4px 16px;box-shadow:0 12px 40px rgba(0,0,0,0.13);padding:14px 16px 12px;max-width:220px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(10px) scale(.94);transition:opacity .3s,transform .3s;pointer-events:none;}'
+    + '#cb-greeting-bubble{position:fixed;bottom:110px;right:100px;z-index:2147483646;background:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 12px 40px rgba(0,0,0,0.16);padding:12px 16px;max-width:260px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(10px) scale(.94);transition:opacity .3s,transform .3s;pointer-events:none;display:flex;align-items:center;gap:10px;}'
     + '#cb-greeting-bubble.cb-bv{opacity:1;transform:none;pointer-events:all;}'
     + '#cb-greeting-bubble.cb-bh{opacity:0;transform:translateY(10px) scale(.94);pointer-events:none;}'
-    + '#cb-greeting-bubble p{font-size:13px;color:#333;margin:0 0 10px;line-height:1.5;padding-right:14px;}'
-    + '#cb-greeting-bubble button{background:#0154B1;color:#fff;border:none;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;width:100%;font-family:"Outfit",sans-serif;transition:background .2s;}'
-    + '#cb-greeting-bubble button:hover{background:#0146a0;}'
-    + '.cb-bubble-close{position:absolute;top:8px;right:10px;font-size:16px;color:#ccc;cursor:pointer;line-height:1;}'
+    + '#cb-greeting-bubble p{font-size:14px;color:#222;margin:0;line-height:1.4;font-weight:600;flex:1;cursor:pointer;}'
+    + '#cb-greeting-bubble .cb-bubble-av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 2px #0154B1;}'
+    + '.cb-bubble-close{position:absolute;top:6px;right:8px;font-size:15px;color:#ccc;cursor:pointer;line-height:1;}'
     + '.cb-bubble-close:hover{color:#666;}'
+    + '#cb-greeting-card{position:fixed;bottom:110px;right:24px;z-index:2147483646;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.18);padding:18px 20px 20px;width:300px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(16px) scale(.95);transition:opacity .32s,transform .32s;pointer-events:none;}'
+    + '#cb-greeting-card.cb-gv{opacity:1;transform:none;pointer-events:all;}'
+    + '#cb-greeting-card.cb-gh{opacity:0;transform:translateY(16px) scale(.95);pointer-events:none;}'
+    + '.cb-gc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;}'
+    + '.cb-gc-av-wrap{position:relative;flex-shrink:0;}'
+    + '.cb-gc-av-wrap img{width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;}'
+    + '.cb-gc-av-wrap::before{content:"";position:absolute;inset:-2px;border-radius:50%;background:linear-gradient(135deg,#0154B1,#4facfe);z-index:-1;}'
+    + '.cb-gc-online{position:absolute;bottom:-1px;right:-1px;width:11px;height:11px;background:#22c55e;border-radius:50%;border:2px solid #fff;}'
+    + '.cb-gc-name{font-size:15px;font-weight:700;color:#111;}'
+    + '.cb-gc-time{font-size:11.5px;color:#9aa1ad;margin-top:1px;}'
+    + '.cb-gc-close{margin-left:auto;font-size:18px;color:#bbb;cursor:pointer;line-height:1;padding:2px;}'
+    + '.cb-gc-close:hover{color:#666;}'
+    + '.cb-gc-question{font-size:15px;font-weight:600;color:#1a1d23;line-height:1.4;margin:0 0 14px;}'
+    + '.cb-gc-yn{display:flex;gap:10px;margin-bottom:14px;}'
+    + '.cb-gc-yn button{flex:1;background:#eaf3fe;color:#0154B1;border:none;padding:10px 0;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:"Outfit",sans-serif;transition:background .18s;}'
+    + '.cb-gc-yn button:hover{background:#0154B1;color:#fff;}'
+    + '.cb-gc-input{display:flex;align-items:center;border:1.5px solid #e7eaf0;border-radius:24px;padding:6px 6px 6px 16px;}'
+    + '.cb-gc-input input{flex:1;border:none;outline:none;font-size:13.5px;font-family:"Outfit",sans-serif;color:#111;background:transparent;}'
+    + '.cb-gc-input input::placeholder{color:#b3b9c4;}'
+    + '.cb-gc-input button{width:32px;height:32px;border-radius:50%;background:#f0f3f8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#0154B1;transition:background .18s;}'
+    + '.cb-gc-input button:hover{background:#0154B1;color:#fff;}'
     + '#lead-bot{position:fixed;bottom:108px;right:28px;z-index:2147483646;animation:cb-pop-in .35s cubic-bezier(.34,1.56,.64,1) both;}'
     + '@keyframes cb-pop-in{from{opacity:0;transform:translateY(20px) scale(.96);}to{opacity:1;transform:none;}}'
     + '.cb-card{width:370px;border-radius:22px;overflow:hidden;background:linear-gradient(160deg,rgba(255,255,255,.82) 0%,rgba(235,244,255,.88) 100%);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 32px 80px rgba(0,0,0,0.16),0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 160px);font-family:"Outfit",sans-serif;border:1px solid rgba(255,255,255,.6);box-sizing:border-box;}'
@@ -190,14 +211,14 @@
     + '.cb-input-bar button{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;color:#fff!important;border:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;transition:all .2s;box-shadow:0 3px 10px rgba(1,84,177,.32)!important;opacity:1!important;visibility:visible!important;overflow:visible!important;padding:0!important;}'
     + '.cb-input-bar button:hover{transform:scale(1.08);}'
     + '.cb-input-bar button:active{transform:scale(.95);}'
-    + '#cb-send svg{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;max-width:none!important;max-height:none!important;flex-shrink:0!important;opacity:1!important;visibility:visible!important;overflow:visible!important;fill:none!important;stroke:#fff!important;stroke-width:2.5!important;pointer-events:none!important;vertical-align:middle!important;}'
-    + '#cb-send svg *{stroke:#fff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;stroke-width:2.5!important;}'
+    + '#cb-send svg{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;flex-shrink:0!important;opacity:1!important;visibility:visible!important;overflow:visible!important;fill:none!important;stroke:#fff!important;stroke-width:2.5!important;pointer-events:none!important;}'
+    + '#cb-send svg *{stroke:#fff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;border:none!important;display:flex!important;align-items:center!important;justify-content:center!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#fff!important;}'
-    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;max-width:none!important;max-height:none!important;fill:none!important;stroke:#ffffff!important;stroke-width:2.5!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#ffffff!important;vertical-align:middle!important;}'
-    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon *{stroke:#ffffff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;stroke-width:2.5!important;}'
+    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;fill:none!important;stroke:#ffffff!important;stroke-width:2.5!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#ffffff!important;}'
+    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon *{stroke:#ffffff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
     + '.cb-schedule{display:none;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff!important;font-weight:700;font-size:13.5px;font-family:"Outfit",sans-serif;text-decoration:none!important;padding:13px;letter-spacing:.2px;transition:filter .2s;flex-shrink:0;}'
     + '.cb-schedule:hover{filter:brightness(.92);}'
-    + '@media (max-width:480px){#lead-bot{bottom:0;right:0;left:0;width:100%;animation:none;}.cb-card{width:100%;border-radius:24px 24px 0 0;max-height:88vh;overflow:hidden;border:none;}.cb-body{max-height:42vh!important;}.cb-qbtns button,.cb-bbtns button{font-size:12px!important;padding:9px 10px!important;}.cb-input-bar input{font-size:13px;box-sizing:border-box;}#cb-greeting-bubble{right:8px;bottom:100px;max-width:calc(100vw - 80px);}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}}';
+    + '@media (max-width:480px){#lead-bot{bottom:0;right:0;left:0;width:100%;animation:none;}.cb-card{width:100%;border-radius:24px 24px 0 0;max-height:88vh;overflow:hidden;border:none;}.cb-body{max-height:42vh!important;}.cb-qbtns button,.cb-bbtns button{font-size:12px!important;padding:9px 10px!important;}.cb-input-bar input{font-size:13px;box-sizing:border-box;}#cb-greeting-bubble{right:8px;bottom:100px;max-width:calc(100vw - 80px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:96px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}}';
 
   function injectStyles() {
     if (!document.getElementById('cb-font-link')) {
@@ -275,8 +296,8 @@
         '<div class="cb-input-bar" id="cb-input-bar" style="display:none!important;">' +
           '<input type="text" id="cb-input" placeholder="Type your answer..." autocomplete="off" />' +
           '<button id="cb-send" aria-label="Send" style="opacity:1!important;visibility:visible!important;">' +
-            '<svg id="cb-send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;opacity:1!important;visibility:visible!important;overflow:visible!important;max-width:none!important;max-height:none!important;vertical-align:middle!important;">' +
-              '<line x1="12" y1="19" x2="12" y2="5" style="stroke:#fff!important;fill:none!important;opacity:1!important;display:inline!important;"/><polyline points="5 12 12 5 19 12" style="stroke:#fff!important;fill:none!important;opacity:1!important;display:inline!important;"/>' +
+            '<svg id="cb-send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;opacity:1!important;visibility:visible!important;">' +
+              '<line x1="12" y1="19" x2="12" y2="5" style="stroke:#fff!important;opacity:1!important;"/><polyline points="5 12 12 5 19 12" style="stroke:#fff!important;opacity:1!important;"/>' +
             '</svg>' +
           '</button>' +
         '</div>' +
@@ -297,11 +318,9 @@
     var inputBar = document.getElementById('cb-input-bar');
     var schedBar = document.getElementById('cb-schedule-bar');
 
-    /* AI conversation history */
+    /* AI conversation history — used whenever the user types free text
+     * instead of clicking a scripted button. */
     var chatHistory = [];
-    /* lead collection phase: null = AI chat, 'name'/'phone'/'email' = collecting */
-    var collectPhase = null;
-    var chatDone = false;
 
     /* Derive API endpoint from widget.js src — same origin as the widget */
     var API_URL = (function () {
@@ -344,133 +363,37 @@
     }
     function hideTyping() { var t = document.getElementById('cb-typing'); if (t) t.remove(); }
 
-    function showInputBar() {
-      inputBar.setAttribute('style', 'display:flex!important;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.45);flex-shrink:0;');
-      setTimeout(function () { scroll(); inputEl.focus(); }, 50);
-    }
-
-    function hideInputBar() {
-      inputBar.setAttribute('style', 'display:none!important;');
-    }
-
-    function showScheduleBar() {
-      schedBar.setAttribute('style', 'display:block!important;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff;font-weight:700;font-size:13.5px;font-family:Outfit,sans-serif;text-decoration:none;padding:13px;letter-spacing:0.2px;transition:filter 0.2s;flex-shrink:0;');
-    }
-
-    /* ── IDLE ── */
-    function removeIdleReminder() {
-      var b = document.getElementById(IDLE_MSG_ID);  if (b) b.remove();
-      var d = document.getElementById(IDLE_BTNS_ID); if (d) d.remove();
-    }
-
-    function resetIdleTimer() {
-      clearTimeout(idleTimer);
-      idleInterval = 60000;
-      removeIdleReminder();
-      awaitingIdleResponse = false;
-      if (!chatDone) idleTimer = setTimeout(showIdleReminder, idleInterval);
-    }
-
-    function showIdleReminder() {
-      if (chatDone || awaitingIdleResponse) return;
-      awaitingIdleResponse = true;
-      idleInterval = Math.min(idleInterval * 2, 960000);
-      var win = document.getElementById('lead-bot');
-      if (win && win.style.display === 'none') {
-        document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
-        playNotification();
-        idleTimer = setTimeout(showIdleReminder, idleInterval);
-      } else {
-        removeIdleReminder();
-        var wrap = document.createElement('div');
-        wrap.id = IDLE_MSG_ID;
-        wrap.className = 'cb-bot-msg-wrap';
-        wrap.setAttribute('style', WRAP_STYLE);
-        wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">Hi, are you still there? &#x1F44B;</div>';
-        msgs.appendChild(wrap); scroll();
-        var div = document.createElement('div');
-        div.className = 'cb-qbtns cb-grid'; div.id = IDLE_BTNS_ID;
-        var yes = document.createElement('button'); yes.textContent = 'Yes, still here!';
-        yes.onclick = function () { removeIdleReminder(); awaitingIdleResponse = false; addUserMsg('Yes, still here!'); resetIdleTimer(); addBotMsg('Great! Feel free to keep asking — I\'m here to help. &#x1F60A;'); };
-        var no = document.createElement('button'); no.textContent = "No, I'm done";
-        no.onclick = function () {
-          removeIdleReminder(); addUserMsg("No, I'm done");
-          awaitingIdleResponse = false; clearTimeout(idleTimer);
-          addBotMsg('No problem! Feel free to come back anytime. &#x1F603;');
-        };
-        div.appendChild(yes); div.appendChild(no); msgs.appendChild(div); scroll();
-      }
-    }
-
-    /* ── EXPAND UI ── */
-    function expandUI() {
-      if (expanded) return; expanded = true;
-      document.getElementById('cb-header').style.display = 'none';
-      document.getElementById('cb-top-section').style.display = 'block';
-    }
-
-    /* ── GREETING BUBBLE ── */
-    function showGreetingBubble() {
-      if (document.getElementById('cb-greeting-bubble')) return;
-      var b = document.createElement('div'); b.id = 'cb-greeting-bubble';
-      b.innerHTML =
-        '<span class="cb-bubble-close" id="cb-bclose">&#x00D7;</span>' +
-        '<p>Hi! Need help with software or app development?</p>' +
-        '<button id="cb-bopen">Let\'s Chat!</button>';
-      document.body.appendChild(b);
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () { b.classList.add('cb-bv'); });
-      });
-      setTimeout(dismissBubble, 8000);
-      document.getElementById('cb-bclose').onclick = dismissBubble;
-      document.getElementById('cb-bopen').onclick  = openFromBubble;
-    }
-
-    function dismissBubble() {
-      var b = document.getElementById('cb-greeting-bubble'); if (!b) return;
-      b.classList.remove('cb-bv'); b.classList.add('cb-bh');
-      setTimeout(function () { if (b.parentNode) b.remove(); }, 400);
-    }
-
-    function openFromBubble() {
-      dismissBubble();
+    function botReply(msg, cb, delay) {
+      showTyping();
       setTimeout(function () {
-        document.getElementById('lead-bot').style.display = 'block';
-        startChat();
-      }, 200);
+        hideTyping();
+        addBotMsg(msg);
+        if (cb) cb();
+      }, delay || 1200);
     }
 
-    /* ── START CHAT ── */
-    function startChat() {
-      document.getElementById('cb-welcome').style.display = 'none';
-      msgs.classList.remove('cb-body-hidden');
-      var s1 = document.getElementById('cb-step1'); if (s1) s1.remove();
-      showInputBar();
-      showScheduleBar();
-      resetIdleTimer();
-      /* Start with a friendly AI opening */
-      askAI('Hello! I just opened the chat.', true);
+    function makeBackBtn(label, onClick) {
+      var b = document.createElement('button');
+      b.className = 'cb-back-btn';
+      b.innerHTML =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0154B1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;display:block;">' +
+        '<polyline points="15 18 9 12 15 6"/></svg><span>' + label + '</span>';
+      b.onclick = onClick;
+      return b;
     }
 
-    /* ── TOGGLE BOT ── */
-    function toggleBot() {
-      var win   = document.getElementById('lead-bot');
-      var badge = document.getElementById('cb-launcher-badge');
-      var isOpen = (win.style.display === 'none' || win.style.display === '');
-      win.style.display = isOpen ? 'block' : 'none';
-      if (isOpen) {
-        dismissBubble();
-        var hadBadge = badge.classList.contains('cb-badge-on');
-        badge.classList.remove('cb-badge-on');
-        setTimeout(function () {
-          startChat();
-          if (hadBadge) showIdleReminder();
-        }, 400);
-      }
+    function isOffTopic(v) {
+      var offTopicKw = ['price', 'pricing', 'cost', 'how much', 'what do you', 'who are you', 'services', 'what is', 'can you', 'help', 'support', 'contact', 'discount', 'trial'];
+      return offTopicKw.some(function (k) { return v.toLowerCase().indexOf(k) > -1; });
     }
 
-    /* ── AI CALL ── */
-    function askAI(userText, silent) {
+    /* ── AI CALL ──
+     * Used whenever the user types free text instead of clicking a button.
+     * Sends the running chatHistory to the /api/chat proxy (OpenAI GPT-4o-mini)
+     * and renders the reply like a normal bot message. The scripted step/
+     * lead-state machine is left untouched — askAI only supplies the
+     * conversational reply text; callers still drive step transitions. */
+    function askAI(userText, silent, onDone) {
       if (!silent) {
         chatHistory.push({ role: 'user', content: userText });
       }
@@ -491,65 +414,322 @@
         addBotMsg(reply.replace(/\n/g, '<br>'));
         resetIdleTimer();
         setTimeout(function () { inputEl.focus(); }, 100);
-
-        /* Check if AI is asking for contact info — transition to lead collection */
-        var lower = reply.toLowerCase();
-        if (!collectPhase && (
-          lower.indexOf("can i grab your name") > -1 ||
-          lower.indexOf("what's your name") > -1 ||
-          lower.indexOf("may i get your name") > -1 ||
-          lower.indexOf("could i get your name") > -1
-        )) {
-          collectPhase = 'name';
-          inputEl.placeholder = 'Your name...';
-        }
+        if (onDone) onDone(reply);
       })
       .catch(function () {
         hideTyping();
         inputEl.disabled = false;
         addBotMsg("Sorry, I'm having trouble connecting right now. Please call us at 406-936-3049 or email contact@demskigroup.com.");
         resetIdleTimer();
+        if (onDone) onDone(null);
       });
     }
 
-    /* ── LEAD COLLECTION (name/phone/email after AI qualifies) ── */
-    function handleLeadInput(val) {
-      if (collectPhase === 'name') {
-        if (val.length < 2 || /^\d+$/.test(val)) { addBotMsg('Could you enter your full name please?'); return; }
-        lead.name = val; collectPhase = 'phone';
-        inputEl.placeholder = 'Phone number...';
-        addBotMsg('Nice to meet you, ' + val + '! What\'s the best phone number to reach you?');
-        return;
+    function showInputBar() {
+      inputBar.setAttribute('style', 'display:flex!important;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.45);flex-shrink:0;');
+      setTimeout(function () { scroll(); inputEl.focus(); }, 50);
+    }
+
+    function hideInputBar() {
+      inputBar.setAttribute('style', 'display:none!important;');
+    }
+
+    function showScheduleBar() {
+      schedBar.setAttribute('style', 'display:block!important;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff;font-weight:700;font-size:13.5px;font-family:Outfit,sans-serif;text-decoration:none;padding:13px;letter-spacing:0.2px;transition:filter 0.2s;flex-shrink:0;');
+    }
+
+    /* ── IDLE ── */
+    function removeIdleReminder() {
+      var b = document.getElementById(IDLE_MSG_ID);  if (b) b.remove();
+      var d = document.getElementById(IDLE_BTNS_ID); if (d) d.remove();
+    }
+
+    function scheduleIdleTimer() {
+      clearTimeout(idleTimer);
+      if (step < 7) idleTimer = setTimeout(showIdleReminder, idleInterval);
+    }
+
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleInterval = 60000;
+      removeIdleReminder();
+      awaitingIdleResponse = false;
+      scheduleIdleTimer();
+    }
+
+    function showIdleReminder() {
+      if (step >= 7 || awaitingIdleResponse) return;
+      awaitingIdleResponse = true;
+      idleInterval = Math.min(idleInterval * 2, 960000);
+      var win = document.getElementById('lead-bot');
+      if (win && win.style.display === 'none') {
+        document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
+        playNotification();
+        idleTimer = setTimeout(showIdleReminder, idleInterval);
+      } else {
+        removeIdleReminder();
+        hideInputBar();
+        var wrap = document.createElement('div');
+        wrap.id = IDLE_MSG_ID;
+        wrap.className = 'cb-bot-msg-wrap';
+        wrap.setAttribute('style', WRAP_STYLE);
+        wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">Hi, are you still there? &#x1F44B;</div>';
+        msgs.appendChild(wrap); scroll();
+        showIdleButtons();
       }
-      if (collectPhase === 'phone') {
-        var digits = val.replace(/\D/g, '');
-        if (digits.length < 7) { addBotMsg("That doesn't look like a valid phone number. Could you double-check?"); return; }
-        lead.phone = val; collectPhase = 'email';
-        inputEl.placeholder = 'Email address...';
-        addBotMsg("Got it! And what's the best email address to reach you?");
-        return;
+    }
+
+    function showIdleButtons() {
+      var old = document.getElementById(IDLE_BTNS_ID); if (old) old.remove();
+      var div = document.createElement('div');
+      div.className = 'cb-qbtns cb-grid'; div.id = IDLE_BTNS_ID;
+      var yes = document.createElement('button'); yes.textContent = 'Yes, still here!';
+      yes.onclick = function () { removeIdleReminder(); addUserMsg('Yes, still here!'); resumeStep(); };
+      var no = document.createElement('button'); no.textContent = "No, I'm done";
+      no.onclick = function () {
+        removeIdleReminder(); addUserMsg("No, I'm done");
+        awaitingIdleResponse = false; clearTimeout(idleTimer);
+        botReply('No problem! Feel free to come back anytime. &#x1F603;');
+      };
+      div.appendChild(yes); div.appendChild(no); msgs.appendChild(div); scroll();
+    }
+
+    function resumeStep() {
+      awaitingIdleResponse = false; resetIdleTimer();
+      if (step === 1) { botReply('No problem! What type of project is it?', function () { showIntentOptions(lead.intent); }); return; }
+      if (step === 2) { showProjectDescStep(); return; }
+      if (step === 3) { showBudgetStep(); return; }
+      if (step === 4) { showInputBar(); botReply("What's your name?"); return; }
+      if (step === 5) { showInputBar(); botReply("What's the best phone number to reach you?"); return; }
+      if (step === 6) { showInputBar(); botReply("What's the best email to reach you?"); return; }
+      if (step === 7) { botReply('Our team already has your details and will be in touch shortly!'); return; }
+      botReply('No problem! Take your time.');
+    }
+
+    /* ── EXPAND UI ── */
+    function expandUI() {
+      if (expanded) return; expanded = true;
+      document.getElementById('cb-header').style.display = 'none';
+      document.getElementById('cb-top-section').style.display = 'block';
+    }
+
+    /* ── GREETING CARD (big, shown first) ── */
+    function showGreetingCard() {
+      if (expanded || document.getElementById('cb-greeting-card')) return;
+      var c = document.createElement('div'); c.id = 'cb-greeting-card';
+      c.innerHTML =
+        '<div class="cb-gc-head">' +
+          '<div class="cb-gc-av-wrap">' +
+            '<img src="' + AVATAR_URL + '" alt="' + BOT_NAME + '" onerror="this.src=\'' + AVATAR_FB + '\'" />' +
+            '<span class="cb-gc-online"></span>' +
+          '</div>' +
+          '<div><div class="cb-gc-name">' + BOT_NAME + '</div><div class="cb-gc-time">Just now</div></div>' +
+          '<span class="cb-gc-close" id="cb-gc-close">&#x00D7;</span>' +
+        '</div>' +
+        '<p class="cb-gc-question">Are you currently exploring custom software or app development for your business?</p>' +
+        '<div class="cb-gc-yn">' +
+          '<button id="cb-gc-yes">Yes</button>' +
+          '<button id="cb-gc-no">No</button>' +
+        '</div>' +
+        '<div class="cb-gc-input">' +
+          '<input type="text" id="cb-gc-input-el" placeholder="Ask a question" autocomplete="off" />' +
+          '<button id="cb-gc-send" aria-label="Send">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>' +
+          '</button>' +
+        '</div>';
+      document.body.appendChild(c);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { c.classList.add('cb-gv'); });
+      });
+      document.getElementById('cb-gc-close').onclick = dismissGreetingCard;
+      document.getElementById('cb-gc-yes').onclick   = function () { openFromTeaser('Yes'); };
+      document.getElementById('cb-gc-no').onclick    = function () { openFromTeaser('No'); };
+      document.getElementById('cb-gc-send').onclick  = sendFromGreetingCard;
+      document.getElementById('cb-gc-input-el').onkeydown = function (e) {
+        if (e.key === 'Enter') sendFromGreetingCard();
+      };
+      cardTimer = setTimeout(function () {
+        dismissGreetingCard();
+        showGreetingBubble();
+      }, 15000);
+    }
+
+    function sendFromGreetingCard() {
+      var inp = document.getElementById('cb-gc-input-el');
+      var val = inp && inp.value.trim();
+      openFromTeaser(val || null);
+    }
+
+    function dismissGreetingCard() {
+      if (cardTimer) { clearTimeout(cardTimer); cardTimer = null; }
+      var c = document.getElementById('cb-greeting-card'); if (!c) return;
+      c.classList.remove('cb-gv'); c.classList.add('cb-gh');
+      setTimeout(function () { if (c.parentNode) c.remove(); }, 400);
+    }
+
+    /* ── GREETING BUBBLE (small, shown after the card) ── */
+    function showGreetingBubble() {
+      if (expanded || document.getElementById('cb-greeting-bubble')) return;
+      var b = document.createElement('div'); b.id = 'cb-greeting-bubble';
+      b.innerHTML =
+        '<p id="cb-bopen">Hey! Do you have any questions? &#x1F44B;</p>' +
+        '<img class="cb-bubble-av" src="' + AVATAR_URL + '" alt="' + BOT_NAME + '" onerror="this.src=\'' + AVATAR_FB + '\'" />' +
+        '<span class="cb-bubble-close" id="cb-bclose">&#x00D7;</span>';
+      document.body.appendChild(b);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { b.classList.add('cb-bv'); });
+      });
+      document.getElementById('cb-bclose').onclick = dismissBubble;
+      document.getElementById('cb-bopen').onclick  = function () { openFromTeaser(null); };
+    }
+
+    function dismissBubble() {
+      var b = document.getElementById('cb-greeting-bubble'); if (!b) return;
+      b.classList.remove('cb-bv'); b.classList.add('cb-bh');
+      setTimeout(function () { if (b.parentNode) b.remove(); }, 400);
+    }
+
+    function openFromTeaser(prefillText) {
+      dismissGreetingCard();
+      dismissBubble();
+      setTimeout(function () {
+        document.getElementById('lead-bot').style.display = 'block';
+        startChat();
+        if (prefillText) {
+          setTimeout(function () {
+            addUserMsg(prefillText);
+            askAI(prefillText, false);
+          }, 500);
+        }
+      }, 200);
+    }
+
+    /* ── START CHAT ── */
+    function startChat() {
+      document.getElementById('cb-welcome').style.display = 'none';
+      msgs.classList.remove('cb-body-hidden');
+      showInputBar();
+      showScheduleBar();
+      resetIdleTimer();
+    }
+
+    /* ── TOGGLE BOT ── */
+    function toggleBot() {
+      var win   = document.getElementById('lead-bot');
+      var badge = document.getElementById('cb-launcher-badge');
+      var isOpen = (win.style.display === 'none' || win.style.display === '');
+      win.style.display = isOpen ? 'block' : 'none';
+      if (isOpen) {
+        dismissGreetingCard();
+        dismissBubble();
+        var hadBadge = badge.classList.contains('cb-badge-on');
+        badge.classList.remove('cb-badge-on');
+        setTimeout(function () {
+          startChat();
+          if (hadBadge) showIdleReminder();
+        }, 400);
       }
-      if (collectPhase === 'email') {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { addBotMsg("That doesn't look right. Could you double-check your email address?"); return; }
-        lead.email = val; collectPhase = null;
-        inputEl.placeholder = 'Type your answer...';
-        showFinalCTA();
-        return;
-      }
+    }
+
+    /* ── STEP 1: Intent ── */
+    function step1Handler(val) {
+      expandUI();
+      var s1 = document.getElementById('cb-step1'); if (s1) s1.remove();
+      addUserMsg(val); lead.intent = val; step = 1; resetIdleTimer();
+      var followUp = {
+        'New startup or app idea':  'Love it! Tell me more, what kind of app or product are you thinking about?',
+        'Software for my business': 'Great! What problem are you trying to solve in your business?',
+        'Digital marketing help':   'Nice! What are you hoping to improve: traffic, leads, or sales?',
+        'Just exploring':           "That's totally fine! Can you tell me a bit about what you have in mind?"
+      };
+      botReply(followUp[val] || "Can you tell me a bit about it or if you already have a design in mind?", function () {
+        showIntentOptions(val);
+      });
+    }
+
+    /* ── INTENT OPTIONS ── */
+    function showIntentOptions(intent) {
+      var intentOptions = {
+        'New startup or app idea':   ['Mobile App', 'Web App', 'SaaS Platform', 'eCommerce', 'Other'],
+        'Software for my business':  ['Automate Workflows', 'Customer Management', 'Reporting & Analytics', 'Employee Tools', 'Other'],
+        'Digital marketing help':    ['Increase Website Traffic', 'Generate More Leads', 'Social Media Growth', 'Paid Advertising', 'Other'],
+        'Just exploring':            ['Planning a Future Project', 'Comparing Vendors', 'Learning About Tech', 'Just Curious']
+      };
+      var opts = intentOptions[intent] || ['Mobile App', 'Web App', 'Something else'];
+      var div = document.createElement('div'); div.className = 'cb-qbtns cb-grid'; div.id = 'cb-intent';
+      opts.forEach(function (o) {
+        var b = document.createElement('button'); b.textContent = o;
+        b.onclick = function () {
+          var el = document.getElementById('cb-intent'); if (el) el.remove();
+          addUserMsg(o); lead.intent_detail = o;
+          step = 2;
+          showProjectDescStep();
+        };
+        div.appendChild(b);
+      });
+      div.appendChild(makeBackBtn('Back', function () {
+        var el = document.getElementById('cb-intent'); if (el) el.remove();
+        lead.intent = ''; step = 0;
+        botReply('No problem! What kind of project do you need help bringing to life?', function () {
+          var s1 = document.createElement('div'); s1.className = 'cb-qbtns cb-grid'; s1.id = 'cb-step1';
+          ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'].forEach(function (v) {
+            var b = document.createElement('button'); b.textContent = v;
+            b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
+          });
+          msgs.appendChild(s1); scroll();
+        });
+      }));
+      msgs.appendChild(div); scroll();
+    }
+
+    /* ── PROJECT DESCRIPTION (free text) ── */
+    function showProjectDescStep() {
+      step = 2; resetIdleTimer();
+      botReply("Can you tell me a bit about your project? Feel free to share as much or as little as you'd like. Any details help!", function () {
+        showInputBar();
+        inputEl.placeholder = 'Describe your project...';
+      });
+    }
+
+    /* ── BUDGET ── */
+    function showBudgetStep() {
+      step = 3; resetIdleTimer();
+      hideInputBar();
+      botReply('Do you have a budget range in mind for this project?', function () {
+        var div = document.createElement('div'); div.className = 'cb-bbtns cb-grid'; div.id = 'cb-budget';
+        ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'].forEach(function (bv) {
+          var btn = document.createElement('button'); btn.textContent = bv;
+          btn.onclick = function () {
+            var el = document.getElementById('cb-budget'); if (el) el.remove();
+            addUserMsg(bv); lead.budget = bv;
+            step = 4; resetIdleTimer();
+            showInputBar();
+            inputEl.placeholder = 'Type your answer...';
+            setTimeout(function () { inputEl.focus(); }, 50);
+            botReply("Thanks, this helps a lot! Let me grab your details so our team can reach out.<br><br>What's your name?");
+          };
+          div.appendChild(btn);
+        });
+        div.appendChild(makeBackBtn('Back', function () {
+          var el = document.getElementById('cb-budget'); if (el) el.remove();
+          lead.budget = ''; step = 2; showProjectDescStep();
+        }));
+        msgs.appendChild(div); scroll();
+      });
     }
 
     /* ── FINAL CTA ── */
     function showFinalCTA() {
-      chatDone = true; clearTimeout(idleTimer); hideInputBar();
-      addBotMsg("Awesome! Based on what you've shared, the best next step is a quick call or Google Meet to go over your project!");
-      setTimeout(function () {
+      step = 7; clearTimeout(idleTimer);
+      hideInputBar();
+      botReply("Awesome! Based on what you've shared, the best next step is a quick call or Google Meet to go over your project!", function () {
         var div = document.createElement('div'); div.className = 'cb-cta-btns'; div.id = 'cb-cta';
         var book = document.createElement('button'); book.className = 'cb-cta-primary'; book.textContent = 'Book a Google Meet';
         book.onclick = function () { handleCTA('Book a Google Meet'); window.open(CALENDLY_URL, '_blank'); };
         var em = document.createElement('button'); em.className = 'cb-cta-secondary'; em.textContent = 'Send me info by email';
         em.onclick = function () { handleCTA('Send me info by email'); };
         div.appendChild(book); div.appendChild(em); msgs.appendChild(div); scroll();
-      }, 400);
+      }, 1200);
     }
 
     function handleCTA(choice) {
@@ -558,13 +738,13 @@
       inputEl.disabled = true; inputEl.placeholder = 'Chat complete';
       var sendBtn = document.querySelector('#cb-input-bar button');
       if (sendBtn) sendBtn.disabled = true;
-      addBotMsg(choice === 'Book a Google Meet'
-        ? "Great! We're opening the calendar now. Pick a time that works for you — a confirmation will be sent to " + lead.email + '!'
+      botReply(choice === 'Book a Google Meet'
+        ? "Great! We're opening the calendar now. Pick a time that works for you. A confirmation will also be sent to " + lead.email + '!'
         : 'Perfect! We\'ll send everything over to ' + lead.email + ' shortly. Talk soon! &#x1F603;');
       submitLead();
     }
 
-    /* ── SUBMIT LEAD via EmailJS ── */
+    /* ── SUBMIT ── */
     function submitLead() {
       var p = {
         intent: lead.intent, intent_detail: lead.intent_detail,
@@ -583,26 +763,78 @@
 
     /* ── INPUT HANDLER ── */
     function handleInput() {
-      var val = inputEl.value.trim(); if (!val || inputEl.disabled) return;
+      var val = inputEl.value.trim(); if (!val) return;
       if (awaitingIdleResponse) {
-        removeIdleReminder(); awaitingIdleResponse = false;
-        addUserMsg(val); inputEl.value = ''; resetIdleTimer();
-        chatHistory.push({ role: 'user', content: val });
-        askAI(val, true);
+        removeIdleReminder(); addUserMsg(val); inputEl.value = ''; resumeStep(); return;
+      }
+      addUserMsg(val); inputEl.value = ''; resetIdleTimer();
+
+      /* Step 0: user types before picking an option — be conversational */
+      if (step === 0) {
+        var lower = val.toLowerCase();
+        var intentGuess = null;
+        if (/startup|app idea|new product|mvp|launch/.test(lower)) intentGuess = 'New startup or app idea';
+        else if (/business|company|software|workflow|automate/.test(lower)) intentGuess = 'Software for my business';
+        else if (/market|seo|ads|traffic|social|leads/.test(lower)) intentGuess = 'Digital marketing help';
+        if (intentGuess) { step1Handler(intentGuess); return; }
+        /* No clear intent match — let the AI carry the conversation instead
+         * of forcing the button list again. */
+        askAI(val, false, function () {
+          var s1 = document.createElement('div'); s1.className = 'cb-qbtns cb-grid'; s1.id = 'cb-step1';
+          ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'].forEach(function (v) {
+            var b = document.createElement('button'); b.textContent = v;
+            b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
+          });
+          msgs.appendChild(s1); scroll();
+        });
         return;
       }
-      addUserMsg(val); inputEl.value = '';
-      resetIdleTimer();
 
-      /* Lead collection phase — don't send to AI */
-      if (collectPhase) {
-        handleLeadInput(val);
+      if (step === 1) {
+        var el = document.getElementById('cb-intent'); if (el) el.remove();
+        /* User typed instead of picking an intent-detail button — ask the AI
+         * to respond conversationally, then re-show the button options. */
+        askAI(val, false, function () { showIntentOptions(lead.intent); });
         return;
       }
 
-      /* Normal AI conversation */
-      lead.project_description = lead.project_description || val;
-      askAI(val, false);
+      /* Step 2: project description free text — let the AI respond
+       * conversationally to what they typed, then continue the scripted
+       * flow into the budget step. */
+      if (step === 2) {
+        lead.project_description = val;
+        inputEl.placeholder = 'Type your answer...';
+        askAI(val, false, function () { showBudgetStep(); });
+        return;
+      }
+
+      if (step === 3) { showBudgetStep(); return; }
+
+      if ((step === 4 || step === 5 || step === 6) && isOffTopic(val)) {
+        var q = step === 4 ? "What's your name?" : step === 5 ? "What's your phone number?" : "What's your email address?";
+        /* Off-topic question during lead capture — answer via AI, then
+         * steer back to the field we still need. */
+        askAI(val, false, function (reply) {
+          if (reply === null) return; /* error path already showed a message */
+          botReply('For now: ' + q);
+        });
+        return;
+      }
+      if (step === 4) {
+        if (val.length < 2 || /^\d+$/.test(val)) { botReply('Could you enter your full name please?'); return; }
+        lead.name = val; step = 5;
+        botReply('Nice to meet you, ' + val + '! What\'s the best phone number to reach you?'); return;
+      }
+      if (step === 5) {
+        var digits = val.replace(/\D/g, '');
+        if (digits.length < 7) { botReply("That doesn't look like a valid phone number. Could you double-check?"); return; }
+        lead.phone = val; step = 6;
+        botReply("Got it! And what's the best email address to reach you?"); return;
+      }
+      if (step === 6) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { botReply("That doesn't look right. Could you double-check your email address?"); return; }
+        lead.email = val; showFinalCTA(); return;
+      }
     }
 
     /* ── WIRE UP DOM EVENTS ── */
@@ -612,19 +844,10 @@
     document.getElementById('cb-send').onclick           = handleInput;
     inputEl.addEventListener('keypress', function (e) { if (e.key === 'Enter') handleInput(); });
 
-    /* Initial step1 quick-buttons still work as shortcuts */
     var s1btns = document.querySelectorAll('#cb-step1 [data-step1]');
     for (var i = 0; i < s1btns.length; i++) {
       (function (btn) {
-        btn.onclick = function () {
-          var val = btn.getAttribute('data-step1');
-          var s1 = document.getElementById('cb-step1'); if (s1) s1.remove();
-          expandUI();
-          addUserMsg(val); lead.intent = val;
-          msgs.classList.remove('cb-body-hidden');
-          showInputBar(); showScheduleBar(); resetIdleTimer();
-          askAI(val, false);
-        };
+        btn.onclick = function () { step1Handler(btn.getAttribute('data-step1')); };
       })(s1btns[i]);
     }
 
@@ -643,10 +866,12 @@
       launcher.style.display = 'flex';
       setTimeout(function () {
         launcher.classList.add('cb-launcher-visible');
-        setTimeout(function () { if (!expanded) showGreetingBubble(); }, 1000);
+        setTimeout(function () { if (!expanded) showGreetingCard(); }, 1000);
       }, 800);
     }
 
+    // Use DOMContentLoaded so the launcher appears fast (~1.5s total),
+    // without waiting for all images/fonts to finish loading.
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function () { setTimeout(launch, 700); });
     } else {
