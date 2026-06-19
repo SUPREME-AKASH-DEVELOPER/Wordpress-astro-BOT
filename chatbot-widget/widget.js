@@ -527,17 +527,21 @@
       awaitingIdleResponse = true;
       idleInterval += 40000;
 
-      /* Badge + shake + sound on the launcher fire every time, regardless of
-       * whether the chat window is open or closed. */
-      document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
-      var idleLauncher = document.getElementById('bot-launcher');
-      if (idleLauncher) {
-        idleLauncher.classList.remove('cb-shake');
-        void idleLauncher.offsetWidth;
-        idleLauncher.classList.add('cb-shake');
-        setTimeout(function () { idleLauncher.classList.remove('cb-shake'); }, 2000);
+      /* Badge + shake + sound on the launcher only make sense while the
+       * chat window is closed — skip them while the user has it open. */
+      var leadBotEl = document.getElementById('lead-bot');
+      var chatIsOpen = leadBotEl && leadBotEl.style.display === 'block';
+      if (!chatIsOpen) {
+        document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
+        var idleLauncher = document.getElementById('bot-launcher');
+        if (idleLauncher) {
+          idleLauncher.classList.remove('cb-shake');
+          void idleLauncher.offsetWidth;
+          idleLauncher.classList.add('cb-shake');
+          setTimeout(function () { idleLauncher.classList.remove('cb-shake'); }, 2000);
+        }
+        playNotification();
       }
-      playNotification();
 
       removeIdleReminder();
       hideInputBar();
@@ -703,7 +707,7 @@
       setTimeout(function () {
         expanded = true;
         document.getElementById('lead-bot').style.display = 'block';
-        setLauncherVisible(true);
+        setLauncherVisible(false);
         document.getElementById('cb-welcome').style.display = 'none';
         msgs.classList.remove('cb-body-hidden');
         showInputBar();
@@ -731,7 +735,7 @@
       dismissBubble();
       setTimeout(function () {
         document.getElementById('lead-bot').style.display = 'block';
-        setLauncherVisible(true);
+        setLauncherVisible(false);
         startChat();
         if (prefillText === 'No' || prefillText) {
           setTimeout(function () {
@@ -791,7 +795,7 @@
       var win = document.getElementById('lead-bot');
       var isOpen = (win.style.display === 'none' || win.style.display === '');
       win.style.display = isOpen ? 'block' : 'none';
-      setLauncherVisible(true);
+      setLauncherVisible(!isOpen);
       if (isOpen) {
         cancelTeaserFlow();
         dismissGreetingCard();
