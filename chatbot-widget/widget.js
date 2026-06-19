@@ -122,22 +122,22 @@
     + '#bot-launcher.cb-launcher-visible{opacity:1;transform:translateY(0) scale(1);}'
     + '#bot-launcher::before{content:"";position:absolute;inset:-3px;border-radius:50%;background:linear-gradient(135deg,#0154B1,#4facfe,#0154B1);z-index:-1;animation:cb-ring-spin 4s linear infinite;}'
     + '@keyframes cb-ring-spin{to{transform:rotate(360deg);}}'
-    + '#bot-launcher img{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 6px 24px rgba(1,84,177,0.28);transition:transform .3s ease;}'
-    + '#bot-launcher:hover img{transform:scale(1.06);}'
+    + '#bot-launcher img{width:92px;height:92px;border-radius:50%;object-fit:cover;object-position:50% 30%;transform:scale(1.1);border:3px solid #fff;box-shadow:0 6px 24px rgba(1,84,177,0.28);transition:transform .3s ease;}'
+    + '#bot-launcher:hover img{transform:scale(1.16);}'
     + '.cb-online-dot{position:absolute;bottom:4px;right:4px;width:14px;height:14px;background:#22c55e;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 2px rgba(34,197,94,0.25);}'
     + '.cb-launcher-badge{position:absolute;top:2px;right:2px;width:22px;height:22px;background:#e53e3e;color:#fff;border-radius:50%;border:2px solid #fff;font-size:12px;font-weight:700;font-family:"Outfit",sans-serif;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(229,62,62,0.5);animation:cb-badge-pop .3s cubic-bezier(.34,1.56,.64,1) both;}'
     + '.cb-launcher-badge.cb-badge-on{display:flex!important;}'
     + '@keyframes cb-badge-pop{from{transform:scale(0);}to{transform:scale(1);}}'
     + '#bot-launcher.cb-shake{animation:cb-shake 2s ease-in-out 0s 1;}'
     + '@keyframes cb-shake{0%,100%{transform:translateX(0) rotate(0);}5%{transform:translateX(-6px) rotate(-4deg);}10%{transform:translateX(6px) rotate(4deg);}15%{transform:translateX(-6px) rotate(-4deg);}20%{transform:translateX(6px) rotate(4deg);}25%{transform:translateX(-6px) rotate(-4deg);}30%{transform:translateX(6px) rotate(4deg);}35%{transform:translateX(-5px) rotate(-3deg);}40%{transform:translateX(5px) rotate(3deg);}45%{transform:translateX(-4px) rotate(-2deg);}50%{transform:translateX(4px) rotate(2deg);}55%{transform:translateX(-3px) rotate(-2deg);}60%{transform:translateX(3px) rotate(2deg);}65%{transform:translateX(-2px) rotate(-1deg);}70%{transform:translateX(2px) rotate(1deg);}75%,100%{transform:translateX(0) rotate(0);}}'
-    + '#cb-greeting-bubble{position:fixed;bottom:46px;right:142px;z-index:2147483646;background:#fff;border-radius:18px 18px 18px 4px;box-shadow:0 12px 40px rgba(0,0,0,0.16);padding:12px 16px;max-width:240px;font-family:"Outfit",sans-serif;opacity:0;transform:translateX(10px) scale(.94);transition:opacity .3s,transform .3s;pointer-events:none;display:flex;align-items:center;gap:10px;}'
+    + '#cb-greeting-bubble{position:fixed;bottom:46px;right:142px;z-index:2147483646;background:#fff;border:2px solid #0154B1;border-radius:18px 18px 18px 4px;box-shadow:0 12px 40px rgba(0,0,0,0.16);padding:12px 16px;max-width:240px;font-family:"Outfit",sans-serif;opacity:0;transform:translateX(10px) scale(.94);transition:opacity .3s,transform .3s;pointer-events:none;display:flex;align-items:center;gap:10px;box-sizing:border-box;}'
     + '#cb-greeting-bubble.cb-bv{opacity:1;transform:none;pointer-events:all;}'
     + '#cb-greeting-bubble.cb-bh{opacity:0;transform:translateX(10px) scale(.94);pointer-events:none;}'
     + '#cb-greeting-bubble p{font-size:14px;color:#222;margin:0;line-height:1.4;font-weight:600;flex:1;cursor:pointer;}'
     + '#cb-greeting-bubble .cb-bubble-av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 2px #0154B1;}'
     + '.cb-bubble-close{position:absolute;top:6px;right:8px;font-size:15px;color:#ccc;cursor:pointer;line-height:1;}'
     + '.cb-bubble-close:hover{color:#666;}'
-    + '#cb-greeting-card{position:fixed;bottom:20px;right:20px;z-index:2147483647;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.18);padding:18px 20px 20px;width:300px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(16px) scale(.95);transition:opacity .32s,transform .32s;pointer-events:none;}'
+    + '#cb-greeting-card{position:fixed;bottom:20px;right:20px;z-index:2147483647;background:#fff;border:2px solid #0154B1;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.18);padding:18px 20px 20px;width:300px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(16px) scale(.95);transition:opacity .32s,transform .32s;pointer-events:none;box-sizing:border-box;}'
     + '#cb-greeting-card.cb-gv{opacity:1;transform:none;pointer-events:all;}'
     + '#cb-greeting-card.cb-gh{opacity:0;transform:translateY(16px) scale(.95);pointer-events:none;}'
     + '.cb-gc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;}'
@@ -223,7 +223,7 @@
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon *{stroke:#ffffff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
     + '.cb-schedule{display:none;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff!important;font-weight:700;font-size:13.5px;font-family:"Outfit",sans-serif;text-decoration:none!important;padding:13px;letter-spacing:.2px;transition:filter .2s;flex-shrink:0;}'
     + '.cb-schedule:hover{filter:brightness(.92);}'
-    + '@media (max-width:480px){#lead-bot{bottom:0;right:0;left:0;width:100%;animation:none;}.cb-card{width:100%;border-radius:24px 24px 0 0;max-height:88vh;overflow:hidden;border:none;}.cb-body{max-height:42vh!important;}.cb-qbtns button,.cb-bbtns button{font-size:12px!important;padding:9px 10px!important;}.cb-input-bar input{font-size:13px;box-sizing:border-box;}#cb-greeting-bubble{right:78px;bottom:24px;max-width:calc(100vw - 160px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:60px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}}';
+    + '@media (max-width:480px){#lead-bot{bottom:0;right:0;left:0;width:100%;animation:none;}.cb-card{width:100%;border-radius:24px 24px 0 0;max-height:88vh;max-height:88dvh;overflow:hidden;border:none;}.cb-body{max-height:42vh!important;max-height:42dvh!important;}.cb-qbtns button,.cb-bbtns button{font-size:12px!important;padding:9px 10px!important;}.cb-input-bar input{font-size:13px;box-sizing:border-box;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}}';
 
   function injectStyles() {
     if (!document.getElementById('cb-font-link')) {
@@ -327,6 +327,11 @@
      * instead of clicking a scripted button. */
     var chatHistory = [];
 
+    /* Guards against duplicate/concurrent AI calls (e.g. a double-click or
+     * double-tap on send firing handleInput twice before the first request
+     * resolves), which otherwise stacks near-identical AI replies. */
+    var aiRequestInFlight = false;
+
     /* Derive API endpoint from widget.js src — same origin as the widget */
     var API_URL = (function () {
       try {
@@ -343,18 +348,21 @@
       return '<img src="' + AVATAR_URL + '" style="' + AV_STYLE + '" alt="" onerror="this.src=\'' + AVATAR_FB + '\'" />';
     }
 
-    /* Tracks the most recent bot message text so an identical reply firing
-     * twice (e.g. a race between the AI response and a reminder/auto-open)
-     * replaces the old bubble instead of stacking a duplicate. */
-    var lastBotMsgText = null;
+/* Removes the previous bot bubble if it has the exact same text, so a
+     * message firing twice (e.g. a race between the AI response and a
+     * reminder/auto-open) replaces the old one instead of stacking a
+     * duplicate. Reads the DOM directly so it also catches bubbles built
+     * by other code paths (like the idle reminder), not just addBotMsg. */
+    function dedupeLastBotMsg(html) {
+      var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
+      var last = wraps[wraps.length - 1];
+      if (last && last.querySelector('.cb-bot-msg') && last.querySelector('.cb-bot-msg').innerHTML === html) {
+        last.remove();
+      }
+    }
 
     function addBotMsg(html) {
-      if (html === lastBotMsgText) {
-        var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
-        var last = wraps[wraps.length - 1];
-        if (last) last.remove();
-      }
-      lastBotMsgText = html;
+      dedupeLastBotMsg(html);
       var w = document.createElement('div');
       w.className = 'cb-bot-msg-wrap';
       w.setAttribute('style', WRAP_STYLE);
@@ -364,7 +372,6 @@
 
     function addUserMsg(text) {
       cancelTeaserFlow();
-      lastBotMsgText = null;
       var d = document.createElement('div');
       d.setAttribute('style', USER_STYLE);
       d.className = 'cb-user-msg';
@@ -412,6 +419,8 @@
      * lead-state machine is left untouched — askAI only supplies the
      * conversational reply text; callers still drive step transitions. */
     function askAI(userText, silent, onDone) {
+      if (aiRequestInFlight) return;
+      aiRequestInFlight = true;
       if (!silent) {
         chatHistory.push({ role: 'user', content: userText });
       }
@@ -425,6 +434,7 @@
       })
       .then(function (r) { return r.json(); })
       .then(function (data) {
+        aiRequestInFlight = false;
         hideTyping();
         inputEl.disabled = false;
         var reply = data.reply || "I'm having a little trouble right now. Please try again or call us at 406-936-3049.";
@@ -435,6 +445,7 @@
         if (onDone) onDone(reply);
       })
       .catch(function () {
+        aiRequestInFlight = false;
         hideTyping();
         inputEl.disabled = false;
         addBotMsg("Sorry, I'm having trouble connecting right now. Please call us at 406-936-3049 or email contact@demskigroup.com.");
@@ -487,11 +498,13 @@
       } else {
         removeIdleReminder();
         hideInputBar();
+        var idleMsg = 'Hi, are you still there? &#x1F44B;';
+        dedupeLastBotMsg(idleMsg);
         var wrap = document.createElement('div');
         wrap.id = IDLE_MSG_ID;
         wrap.className = 'cb-bot-msg-wrap';
         wrap.setAttribute('style', WRAP_STYLE);
-        wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">Hi, are you still there? &#x1F44B;</div>';
+        wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + idleMsg + '</div>';
         msgs.appendChild(wrap); scroll();
         showIdleButtons();
       }
@@ -514,12 +527,13 @@
 
     function resumeStep() {
       awaitingIdleResponse = false; resetIdleTimer();
+      showInputBar();
       if (step === 1) { botReply('No problem! What type of project is it?', function () { showIntentOptions(lead.intent); }); return; }
       if (step === 2) { showProjectDescStep(); return; }
       if (step === 3) { showBudgetStep(); return; }
-      if (step === 4) { showInputBar(); botReply("What's your name?"); return; }
-      if (step === 5) { showInputBar(); botReply("What's the best phone number to reach you?"); return; }
-      if (step === 6) { showInputBar(); botReply("What's the best email to reach you?"); return; }
+      if (step === 4) { botReply("What's your name?"); return; }
+      if (step === 5) { botReply("What's the best phone number to reach you?"); return; }
+      if (step === 6) { botReply("What's the best email to reach you?"); return; }
       if (step === 7) { botReply('Our team already has your details and will be in touch shortly!'); return; }
       botReply('No problem! Take your time.');
     }
@@ -644,6 +658,7 @@
       setTimeout(function () {
         expanded = true;
         document.getElementById('lead-bot').style.display = 'block';
+        setLauncherVisible(false);
         document.getElementById('cb-welcome').style.display = 'none';
         msgs.classList.remove('cb-body-hidden');
         showInputBar();
@@ -671,6 +686,7 @@
       dismissBubble();
       setTimeout(function () {
         document.getElementById('lead-bot').style.display = 'block';
+        setLauncherVisible(false);
         startChat();
         if (prefillText === 'No') {
           setTimeout(function () {
@@ -722,11 +738,19 @@
       resetIdleTimer();
     }
 
+    /* Hides the round launcher avatar while the chat window is open so it
+     * never overlaps the open card's bottom corner; restores it on close. */
+    function setLauncherVisible(visible) {
+      var launcher = document.getElementById('bot-launcher');
+      if (launcher) launcher.style.display = visible ? 'flex' : 'none';
+    }
+
     /* ── TOGGLE BOT ── */
     function toggleBot() {
       var win = document.getElementById('lead-bot');
       var isOpen = (win.style.display === 'none' || win.style.display === '');
       win.style.display = isOpen ? 'block' : 'none';
+      setLauncherVisible(!isOpen);
       if (isOpen) {
         cancelTeaserFlow();
         dismissGreetingCard();
@@ -736,10 +760,11 @@
     }
 
     /* ── STEP 1: Intent ── */
-    function step1Handler(val) {
+    function step1Handler(val, skipUserMsg) {
       expandUI();
       var s1 = document.getElementById('cb-step1'); if (s1) s1.remove();
-      addUserMsg(val); lead.intent = val; step = 1; resetIdleTimer();
+      if (!skipUserMsg) addUserMsg(val);
+      lead.intent = val; step = 1; resetIdleTimer();
       var followUp = {
         'New startup or app idea':  'Love it! Tell me more, what kind of app or product are you thinking about?',
         'Software for my business': 'Great! What problem are you trying to solve in your business?',
@@ -867,6 +892,7 @@
 
     /* ── INPUT HANDLER ── */
     function handleInput() {
+      if (aiRequestInFlight) return;
       var val = inputEl.value.trim(); if (!val) return;
       cancelTeaserFlow();
       if (awaitingIdleResponse) {
@@ -881,7 +907,7 @@
         if (/startup|app idea|new product|mvp|launch/.test(lower)) intentGuess = 'New startup or app idea';
         else if (/business|company|software|workflow|automate/.test(lower)) intentGuess = 'Software for my business';
         else if (/market|seo|ads|traffic|social|leads/.test(lower)) intentGuess = 'Digital marketing help';
-        if (intentGuess) { step1Handler(intentGuess); return; }
+        if (intentGuess) { step1Handler(intentGuess, true); return; }
         /* No clear intent match — let the AI carry the conversation instead
          * of forcing the button list again. */
         askAI(val, false, function () {
