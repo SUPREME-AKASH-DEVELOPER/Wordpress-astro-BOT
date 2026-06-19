@@ -350,6 +350,15 @@
 
     function scroll() { msgs.scrollTop = msgs.scrollHeight; }
 
+    /* Scrolls so the most recent bot question stays visible at the top of
+     * the panel instead of being pushed off-screen by its own button group
+     * (button rows can be taller than the remaining scroll viewport). */
+    function scrollToLatestBotMsg() {
+      var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
+      var last = wraps[wraps.length - 1];
+      if (last) { msgs.scrollTop = last.offsetTop - 8; } else { scroll(); }
+    }
+
     function avImg() {
       return '<img src="' + AVATAR_URL + '" style="' + AV_STYLE + '" alt="" onerror="this.src=\'' + AVATAR_FB + '\'" />';
     }
@@ -570,7 +579,7 @@
         awaitingIdleResponse = false; clearTimeout(idleTimer);
         botReply('No problem! Feel free to come back anytime. &#x1F603;');
       };
-      div.appendChild(yes); div.appendChild(no); msgs.appendChild(div); scroll();
+      div.appendChild(yes); div.appendChild(no); msgs.appendChild(div); scrollToLatestBotMsg();
     }
 
     function resumeStep() {
@@ -707,7 +716,7 @@
       setTimeout(function () {
         expanded = true;
         document.getElementById('lead-bot').style.display = 'block';
-        setLauncherVisible(false);
+        setLauncherVisible(true);
         document.getElementById('cb-welcome').style.display = 'none';
         msgs.classList.remove('cb-body-hidden');
         showInputBar();
@@ -735,7 +744,7 @@
       dismissBubble();
       setTimeout(function () {
         document.getElementById('lead-bot').style.display = 'block';
-        setLauncherVisible(false);
+        setLauncherVisible(true);
         startChat();
         if (prefillText === 'No' || prefillText) {
           setTimeout(function () {
@@ -760,7 +769,7 @@
       div.innerHTML = opts.map(function (o) {
         return '<button data-nofollow="' + o + '">' + o + '</button>';
       }).join('');
-      msgs.appendChild(div); scroll();
+      msgs.appendChild(div); scrollToLatestBotMsg();
       var btns = div.querySelectorAll('[data-nofollow]');
       for (var i = 0; i < btns.length; i++) {
         (function (btn) {
@@ -783,8 +792,6 @@
       resetIdleTimer();
     }
 
-    /* Hides the round launcher avatar while the chat window is open so it
-     * never overlaps the open card's bottom corner; restores it on close. */
     function setLauncherVisible(visible) {
       var launcher = document.getElementById('bot-launcher');
       if (launcher) launcher.style.display = visible ? 'flex' : 'none';
@@ -795,7 +802,7 @@
       var win = document.getElementById('lead-bot');
       var isOpen = (win.style.display === 'none' || win.style.display === '');
       win.style.display = isOpen ? 'block' : 'none';
-      setLauncherVisible(!isOpen);
+      setLauncherVisible(true);
       if (isOpen) {
         cancelTeaserFlow();
         dismissGreetingCard();
@@ -850,10 +857,10 @@
             var b = document.createElement('button'); b.textContent = v;
             b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
           });
-          msgs.appendChild(s1); scroll();
+          msgs.appendChild(s1); scrollToLatestBotMsg();
         });
       }));
-      msgs.appendChild(div); scroll();
+      msgs.appendChild(div); scrollToLatestBotMsg();
     }
 
     /* ── PROJECT DESCRIPTION (free text) ── */
@@ -888,7 +895,7 @@
           var el = document.getElementById('cb-budget'); if (el) el.remove();
           lead.budget = ''; step = 2; showProjectDescStep();
         }));
-        msgs.appendChild(div); scroll();
+        msgs.appendChild(div); scrollToLatestBotMsg();
       });
     }
 
@@ -902,7 +909,7 @@
         book.onclick = function () { handleCTA('Book a Google Meet'); window.open(CALENDLY_URL, '_blank'); };
         var em = document.createElement('button'); em.className = 'cb-cta-secondary'; em.textContent = 'Send me info by email';
         em.onclick = function () { handleCTA('Send me info by email'); };
-        div.appendChild(book); div.appendChild(em); msgs.appendChild(div); scroll();
+        div.appendChild(book); div.appendChild(em); msgs.appendChild(div); scrollToLatestBotMsg();
       }, 1200);
     }
 
@@ -972,7 +979,7 @@
             var b = document.createElement('button'); b.textContent = v;
             b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
           });
-          msgs.appendChild(s1); scroll();
+          msgs.appendChild(s1); scrollToLatestBotMsg();
         });
         return;
       }
