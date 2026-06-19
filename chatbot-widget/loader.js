@@ -6,7 +6,6 @@
  *
  * Optional data attributes are forwarded to the widget:
  *   data-avatar, data-avatar-fallback, data-calendly,
- *   data-ejs-key, data-ejs-service, data-ejs-lead-template, data-ejs-confirm-template,
  *   data-bot-name, data-bot-title
  */
 (function () {

@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/send-lead.js": {
+      "includeFiles": "email-templates/**"
+    }
+  },
   "headers": [
     {
       "source": "/(.*).js",

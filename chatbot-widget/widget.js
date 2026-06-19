@@ -31,10 +31,6 @@
   var AVATAR_URL    = scriptAttr('data-avatar', BASE_URL + 'avatar-alex.webp');
   var AVATAR_FB     = scriptAttr('data-avatar-fallback', AVATAR_URL);
   var CALENDLY_URL  = scriptAttr('data-calendly', 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3loQplPyCXe28FPP0trIgOCmhJqwKCXka1x3uCkblaAFtklpetKpkyi6glNBGxVR8jpOQenySG');
-  var EJS_KEY       = scriptAttr('data-ejs-key', 'nedYqWwwPWVZZVX0_');
-  var EJS_SVC       = scriptAttr('data-ejs-service', 'service_f4tf0yn');
-  var EJS_LEAD_TPL  = scriptAttr('data-ejs-lead-template', 'template_c6hi8ir');
-  var EJS_CONF_TPL  = scriptAttr('data-ejs-confirm-template', 'template_7kz7hgj');
   var BOT_NAME      = scriptAttr('data-bot-name', 'Alex');
   var BOT_TITLE     = scriptAttr('data-bot-title', 'The Demski Group');
 
@@ -919,6 +915,15 @@
     }
 
     /* ── SUBMIT ── */
+    var LEAD_URL = (function () {
+      try {
+        var base = new URL(SCRIPT_EL.src, location.href).href.replace(/\/[^/]*$/, '/');
+        return base + 'api/send-lead';
+      } catch (e) {
+        return '/api/send-lead';
+      }
+    })();
+
     function submitLead() {
       var p = {
         intent: lead.intent, intent_detail: lead.intent_detail,
@@ -930,9 +935,11 @@
         utm_medium: lead.utm_medium, utm_term: lead.utm_term,
         utm_content: lead.utm_content, gclid: lead.gclid
       };
-      if (!window.emailjs) { console.warn('[Demski Chatbot] EmailJS not loaded; lead not sent', p); return; }
-      window.emailjs.send(EJS_SVC, EJS_LEAD_TPL, p).catch(function (e) { console.warn('Lead failed', e); });
-      window.emailjs.send(EJS_SVC, EJS_CONF_TPL, { user_name: lead.name, user_email: lead.email, cta_choice: lead.cta_choice }).catch(function (e) { console.warn('Confirm failed', e); });
+      fetch(LEAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p)
+      }).catch(function (e) { console.warn('[Demski Chatbot] Lead send failed', e); });
     }
 
     /* ── INPUT HANDLER ── */
@@ -1027,17 +1034,8 @@
       })(s1btns[i]);
     }
 
-    /* ── EMAILJS + LAUNCH ── */
-    function bootEmailJS() {
-      if (window.emailjs) { window.emailjs.init(EJS_KEY); return; }
-      var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-      s.onload = function () { window.emailjs.init(EJS_KEY); };
-      document.head.appendChild(s);
-    }
-
+    /* ── LAUNCH ── */
     function launch() {
-      bootEmailJS();
       var launcher = document.getElementById('bot-launcher');
       launcher.style.display = 'flex';
       setTimeout(function () { if (!expanded) showGreetingCard(); }, 800);

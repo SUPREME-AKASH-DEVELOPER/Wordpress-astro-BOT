@@ -7,5 +7,8 @@
   "scripts": {
     "dev": "npx serve . -l 3000",
     "start": "npx serve . -l 3000"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.4"
   }
 }
