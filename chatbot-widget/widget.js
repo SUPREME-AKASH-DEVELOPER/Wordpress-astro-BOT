@@ -719,11 +719,12 @@
         setLauncherVisible(true);
         document.getElementById('cb-welcome').style.display = 'none';
         msgs.classList.remove('cb-body-hidden');
-        showInputBar();
         showScheduleBar();
         resetIdleTimer();
         msgs.innerHTML = '';
+        hideInputBar();
         addBotMsg('Hi, are you still there? &#x1F44B;');
+        showIdleButtons();
       }, 200);
     }
 
