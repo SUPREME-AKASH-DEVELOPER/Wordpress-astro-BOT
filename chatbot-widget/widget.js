@@ -65,6 +65,9 @@
   var step = 0;
   var expanded = false;
   var cardTimer = null;
+  var bubbleTimer = null;
+  var badgeTimer = null;
+  var teaserFlowDone = false;
   var idleTimer = null;
   var idleInterval = 60000;
   var awaitingIdleResponse = false;
@@ -125,6 +128,8 @@
     + '.cb-launcher-badge{position:absolute;top:2px;right:2px;width:22px;height:22px;background:#e53e3e;color:#fff;border-radius:50%;border:2px solid #fff;font-size:12px;font-weight:700;font-family:"Outfit",sans-serif;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(229,62,62,0.5);animation:cb-badge-pop .3s cubic-bezier(.34,1.56,.64,1) both;}'
     + '.cb-launcher-badge.cb-badge-on{display:flex!important;}'
     + '@keyframes cb-badge-pop{from{transform:scale(0);}to{transform:scale(1);}}'
+    + '#bot-launcher.cb-shake{animation:cb-shake 2s ease-in-out 0s 1;}'
+    + '@keyframes cb-shake{0%,100%{transform:translateX(0) rotate(0);}5%{transform:translateX(-6px) rotate(-4deg);}10%{transform:translateX(6px) rotate(4deg);}15%{transform:translateX(-6px) rotate(-4deg);}20%{transform:translateX(6px) rotate(4deg);}25%{transform:translateX(-6px) rotate(-4deg);}30%{transform:translateX(6px) rotate(4deg);}35%{transform:translateX(-5px) rotate(-3deg);}40%{transform:translateX(5px) rotate(3deg);}45%{transform:translateX(-4px) rotate(-2deg);}50%{transform:translateX(4px) rotate(2deg);}55%{transform:translateX(-3px) rotate(-2deg);}60%{transform:translateX(3px) rotate(2deg);}65%{transform:translateX(-2px) rotate(-1deg);}70%{transform:translateX(2px) rotate(1deg);}75%,100%{transform:translateX(0) rotate(0);}}'
     + '#cb-greeting-bubble{position:fixed;bottom:46px;right:142px;z-index:2147483646;background:#fff;border-radius:18px 18px 18px 4px;box-shadow:0 12px 40px rgba(0,0,0,0.16);padding:12px 16px;max-width:240px;font-family:"Outfit",sans-serif;opacity:0;transform:translateX(10px) scale(.94);transition:opacity .3s,transform .3s;pointer-events:none;display:flex;align-items:center;gap:10px;}'
     + '#cb-greeting-bubble.cb-bv{opacity:1;transform:none;pointer-events:all;}'
     + '#cb-greeting-bubble.cb-bh{opacity:0;transform:translateX(10px) scale(.94);pointer-events:none;}'
@@ -132,7 +137,7 @@
     + '#cb-greeting-bubble .cb-bubble-av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 2px #0154B1;}'
     + '.cb-bubble-close{position:absolute;top:6px;right:8px;font-size:15px;color:#ccc;cursor:pointer;line-height:1;}'
     + '.cb-bubble-close:hover{color:#666;}'
-    + '#cb-greeting-card{position:fixed;bottom:40px;right:148px;z-index:2147483646;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.18);padding:18px 20px 20px;width:300px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(16px) scale(.95);transition:opacity .32s,transform .32s;pointer-events:none;}'
+    + '#cb-greeting-card{position:fixed;bottom:20px;right:20px;z-index:2147483647;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.18);padding:18px 20px 20px;width:300px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(16px) scale(.95);transition:opacity .32s,transform .32s;pointer-events:none;}'
     + '#cb-greeting-card.cb-gv{opacity:1;transform:none;pointer-events:all;}'
     + '#cb-greeting-card.cb-gh{opacity:0;transform:translateY(16px) scale(.95);pointer-events:none;}'
     + '.cb-gc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;}'
@@ -338,7 +343,18 @@
       return '<img src="' + AVATAR_URL + '" style="' + AV_STYLE + '" alt="" onerror="this.src=\'' + AVATAR_FB + '\'" />';
     }
 
+    /* Tracks the most recent bot message text so an identical reply firing
+     * twice (e.g. a race between the AI response and a reminder/auto-open)
+     * replaces the old bubble instead of stacking a duplicate. */
+    var lastBotMsgText = null;
+
     function addBotMsg(html) {
+      if (html === lastBotMsgText) {
+        var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
+        var last = wraps[wraps.length - 1];
+        if (last) last.remove();
+      }
+      lastBotMsgText = html;
       var w = document.createElement('div');
       w.className = 'cb-bot-msg-wrap';
       w.setAttribute('style', WRAP_STYLE);
@@ -347,6 +363,8 @@
     }
 
     function addUserMsg(text) {
+      cancelTeaserFlow();
+      lastBotMsgText = null;
       var d = document.createElement('div');
       d.setAttribute('style', USER_STYLE);
       d.className = 'cb-user-msg';
@@ -515,7 +533,7 @@
 
     /* ── GREETING CARD (big, shown first) ── */
     function showGreetingCard() {
-      if (expanded || document.getElementById('cb-greeting-card')) return;
+      if (expanded || teaserFlowDone || document.getElementById('cb-greeting-card')) return;
       var c = document.createElement('div'); c.id = 'cb-greeting-card';
       c.innerHTML =
         '<div class="cb-gc-head">' +
@@ -541,20 +559,26 @@
       requestAnimationFrame(function () {
         requestAnimationFrame(function () { c.classList.add('cb-gv'); });
       });
-      document.getElementById('cb-gc-close').onclick = dismissGreetingCard;
+      document.getElementById('cb-gc-close').onclick = function () {
+        if (cardTimer) { clearTimeout(cardTimer); cardTimer = null; }
+        dismissGreetingCard();
+        showGreetingBubble();
+      };
       document.getElementById('cb-gc-yes').onclick   = function () { openFromTeaser('Yes'); };
       document.getElementById('cb-gc-no').onclick    = function () { openFromTeaser('No'); };
       document.getElementById('cb-gc-send').onclick  = sendFromGreetingCard;
       document.getElementById('cb-gc-input-el').onkeydown = function (e) {
         if (e.key === 'Enter') sendFromGreetingCard();
       };
+      /* No interaction on the card → hide it and move to the small teaser bubble. */
       cardTimer = setTimeout(function () {
         dismissGreetingCard();
         showGreetingBubble();
-      }, 15000);
+      }, 10000);
     }
 
     function sendFromGreetingCard() {
+      cancelTeaserFlow();
       var inp = document.getElementById('cb-gc-input-el');
       var val = inp && inp.value.trim();
       openFromTeaser(val || null);
@@ -569,7 +593,7 @@
 
     /* ── GREETING BUBBLE (small, shown after the card) ── */
     function showGreetingBubble() {
-      if (expanded || document.getElementById('cb-greeting-bubble')) return;
+      if (expanded || teaserFlowDone || document.getElementById('cb-greeting-bubble')) return;
       var b = document.createElement('div'); b.id = 'cb-greeting-bubble';
       b.innerHTML =
         '<p id="cb-bopen">Hey! Do you have any questions? &#x1F44B;</p>' +
@@ -579,29 +603,114 @@
       requestAnimationFrame(function () {
         requestAnimationFrame(function () { b.classList.add('cb-bv'); });
       });
-      document.getElementById('cb-bclose').onclick = dismissBubble;
-      document.getElementById('cb-bopen').onclick  = function () { openFromTeaser(null); };
+      document.getElementById('cb-bclose').onclick = function () { cancelTeaserFlow(); dismissBubble(); };
+      document.getElementById('cb-bopen').onclick   = function () { cancelTeaserFlow(); openFromTeaser(null); };
+      /* No interaction on the bubble for 40s → show the red badge. */
+      bubbleTimer = setTimeout(showLauncherBadge, 40000);
     }
 
     function dismissBubble() {
+      if (bubbleTimer) { clearTimeout(bubbleTimer); bubbleTimer = null; }
       var b = document.getElementById('cb-greeting-bubble'); if (!b) return;
       b.classList.remove('cb-bv'); b.classList.add('cb-bh');
       setTimeout(function () { if (b.parentNode) b.remove(); }, 400);
     }
 
+    /* No interaction on the bubble for 40s → red badge on the launcher avatar. */
+    function showLauncherBadge() {
+      if (expanded || teaserFlowDone) return;
+      var badge = document.getElementById('cb-launcher-badge');
+      if (badge) badge.classList.add('cb-badge-on');
+      var launcher = document.getElementById('bot-launcher');
+      if (launcher) {
+        launcher.classList.remove('cb-shake');
+        void launcher.offsetWidth; /* restart animation if it ran before */
+        launcher.classList.add('cb-shake');
+        setTimeout(function () { launcher.classList.remove('cb-shake'); }, 2000);
+      }
+      /* Still no interaction for another 10s → auto-open with the nudge message. */
+      badgeTimer = setTimeout(autoOpenWithNudge, 10000);
+    }
+
+    /* Auto-open after the badge has been ignored for 10s. Skips the normal
+     * welcome flow entirely and goes straight to the "still there?" nudge. */
+    function autoOpenWithNudge() {
+      if (expanded || teaserFlowDone) return;
+      teaserFlowDone = true;
+      dismissGreetingCard();
+      dismissBubble();
+      var badge = document.getElementById('cb-launcher-badge');
+      if (badge) badge.classList.remove('cb-badge-on');
+      setTimeout(function () {
+        expanded = true;
+        document.getElementById('lead-bot').style.display = 'block';
+        document.getElementById('cb-welcome').style.display = 'none';
+        msgs.classList.remove('cb-body-hidden');
+        showInputBar();
+        showScheduleBar();
+        resetIdleTimer();
+        msgs.innerHTML = '';
+        addBotMsg('Hi, are you still there? &#x1F44B;');
+      }, 200);
+    }
+
+    /* Cancels every pending teaser timer/auto-open. Called on any user
+     * interaction (Yes/No, launcher, bubble, close button, or message). */
+    function cancelTeaserFlow() {
+      teaserFlowDone = true;
+      if (cardTimer)  { clearTimeout(cardTimer);  cardTimer  = null; }
+      if (bubbleTimer) { clearTimeout(bubbleTimer); bubbleTimer = null; }
+      if (badgeTimer)  { clearTimeout(badgeTimer);  badgeTimer  = null; }
+      var badge = document.getElementById('cb-launcher-badge');
+      if (badge) badge.classList.remove('cb-badge-on');
+    }
+
     function openFromTeaser(prefillText) {
+      cancelTeaserFlow();
       dismissGreetingCard();
       dismissBubble();
       setTimeout(function () {
         document.getElementById('lead-bot').style.display = 'block';
         startChat();
-        if (prefillText) {
+        if (prefillText === 'No') {
+          setTimeout(function () {
+            addUserMsg(prefillText);
+            showNoFollowUp();
+          }, 500);
+        } else if (prefillText) {
           setTimeout(function () {
             addUserMsg(prefillText);
             askAI(prefillText, false);
           }, 500);
         }
       }, 200);
+    }
+
+    /* ── "NO" FOLLOW-UP (hardcoded persuasive nudge + quick replies) ── */
+    function showNoFollowUp() {
+      chatHistory.push({ role: 'user', content: 'No' });
+      var msg = "Even if you're not actively looking, understanding what's possible can spark ideas. Many of our 250+ clients didn't realize how much custom software could transform their business. What's one thing in your business that feels harder than it should be?";
+      addBotMsg(msg);
+      chatHistory.push({ role: 'assistant', content: msg });
+      resetIdleTimer();
+      var div = document.createElement('div');
+      div.className = 'cb-qbtns cb-grid'; div.id = 'cb-no-followup';
+      var opts = ['Managing data', 'Customer interactions', 'Team coordination', 'Nothing really'];
+      div.innerHTML = opts.map(function (o) {
+        return '<button data-nofollow="' + o + '">' + o + '</button>';
+      }).join('');
+      msgs.appendChild(div); scroll();
+      var btns = div.querySelectorAll('[data-nofollow]');
+      for (var i = 0; i < btns.length; i++) {
+        (function (btn) {
+          btn.onclick = function () {
+            var val = btn.getAttribute('data-nofollow');
+            div.remove();
+            addUserMsg(val);
+            askAI(val, false);
+          };
+        })(btns[i]);
+      }
     }
 
     /* ── START CHAT ── */
@@ -615,19 +724,14 @@
 
     /* ── TOGGLE BOT ── */
     function toggleBot() {
-      var win   = document.getElementById('lead-bot');
-      var badge = document.getElementById('cb-launcher-badge');
+      var win = document.getElementById('lead-bot');
       var isOpen = (win.style.display === 'none' || win.style.display === '');
       win.style.display = isOpen ? 'block' : 'none';
       if (isOpen) {
+        cancelTeaserFlow();
         dismissGreetingCard();
         dismissBubble();
-        var hadBadge = badge.classList.contains('cb-badge-on');
-        badge.classList.remove('cb-badge-on');
-        setTimeout(function () {
-          startChat();
-          if (hadBadge) showIdleReminder();
-        }, 400);
+        setTimeout(function () { startChat(); }, 400);
       }
     }
 
@@ -764,6 +868,7 @@
     /* ── INPUT HANDLER ── */
     function handleInput() {
       var val = inputEl.value.trim(); if (!val) return;
+      cancelTeaserFlow();
       if (awaitingIdleResponse) {
         removeIdleReminder(); addUserMsg(val); inputEl.value = ''; resumeStep(); return;
       }
@@ -864,10 +969,10 @@
       bootEmailJS();
       var launcher = document.getElementById('bot-launcher');
       launcher.style.display = 'flex';
+      setTimeout(function () { if (!expanded) showGreetingCard(); }, 800);
       setTimeout(function () {
         launcher.classList.add('cb-launcher-visible');
-        setTimeout(function () { if (!expanded) showGreetingCard(); }, 1000);
-      }, 800);
+      }, 1800);
     }
 
     // Use DOMContentLoaded so the launcher appears fast (~1.5s total),
