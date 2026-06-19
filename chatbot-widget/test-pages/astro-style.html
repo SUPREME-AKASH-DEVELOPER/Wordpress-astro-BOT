@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Astro Simulation — Demski Group</title>
+<!-- Simulate Astro's scoped-style output (data-astro-cid attributes + utility classes) -->
+<style>
+  :root { --accent: #0154B1; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { font-family: system-ui, sans-serif; }
+  body { margin: 0; }
+  .layout[data-astro-cid-abc123] { display: flex; flex-direction: column; min-height: 100vh; }
+  .header[data-astro-cid-abc123] { background: var(--accent); color: #fff; padding: 24px; }
+  .main[data-astro-cid-abc123] { flex: 1; max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+  .footer[data-astro-cid-abc123] { background: #10254a; color: #cdd8ef; padding: 24px; text-align: center; font-size: 13px; }
+  .card[data-astro-cid-abc123] { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+  /* High z-index sticky bar, similar to Layout.astro's sticky CTA */
+  .sticky-cta[data-astro-cid-abc123] { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e2e8f0; padding: 10px 16px; z-index: 9999; display: flex; align-items: center; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="layout" data-astro-cid-abc123>
+  <header class="header" data-astro-cid-abc123>
+    <h1>The Demski Group</h1>
+  </header>
+
+  <main class="main" data-astro-cid-abc123>
+    <div class="card" data-astro-cid-abc123>
+      <h2>Sample Astro Page</h2>
+      <p>This page simulates Astro's component-scoped CSS output (<code>data-astro-cid-*</code> attributes), a fixed sticky CTA bar at <code>z-index: 9999</code>, and a server-rendered layout similar to <code>src/layouts/Layout.astro</code>. It exists to confirm the chatbot widget's <code>z-index: 2147483647</code> launcher stays above the sticky bar and that scoped styles don't bleed into or get overridden by the widget.</p>
+    </div>
+  </main>
+
+  <footer class="footer" data-astro-cid-abc123>
+    &copy; 2026 The Demski Group. All rights reserved.
+  </footer>
+
+  <div class="sticky-cta" data-astro-cid-abc123>
+    <span>Ready to start your project?</span>
+    <a href="#" style="background:#F09300;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:600;">Get a Quote</a>
+  </div>
+</div>
+
+<!-- Chatbot widget embed (added to Layout.astro before </body>) -->
+<script src="../loader.js" data-widget-src="../widget.js" async></script>
+</body>
+</html>
