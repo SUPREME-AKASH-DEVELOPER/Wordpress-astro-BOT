@@ -396,6 +396,15 @@
      * top of the thread (before the static "Hello! What kind of project..."
      * block), so the greeting card's question reads first when opened via Yes/No. */
     function prependGreetingExchange(answer) {
+      /* The static "Hello! What kind of project..." + MCQ block is redundant
+       * once the teaser's own Yes/No question has already been answered —
+       * remove it so it doesn't sit between the greeting exchange and the
+       * follow-up reply. */
+      var staticIntro = msgs.firstChild;
+      if (staticIntro) staticIntro.remove();
+      var s1 = document.getElementById('cb-step1');
+      if (s1) s1.remove();
+
       var q = document.createElement('div');
       q.className = 'cb-bot-msg-wrap';
       q.setAttribute('style', WRAP_STYLE);
@@ -511,7 +520,7 @@
 
     function resetIdleTimer() {
       clearTimeout(idleTimer);
-      idleInterval = 60000;
+      idleInterval = 40000;
       removeIdleReminder();
       awaitingIdleResponse = false;
       scheduleIdleTimer();
@@ -520,32 +529,33 @@
     function showIdleReminder() {
       if (step >= 7 || awaitingIdleResponse) return;
       awaitingIdleResponse = true;
-      idleInterval = Math.min(idleInterval * 2, 960000);
-      var win = document.getElementById('lead-bot');
-      if (win && win.style.display === 'none') {
-        document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
-        var idleLauncher = document.getElementById('bot-launcher');
-        if (idleLauncher) {
-          idleLauncher.classList.remove('cb-shake');
-          void idleLauncher.offsetWidth;
-          idleLauncher.classList.add('cb-shake');
-          setTimeout(function () { idleLauncher.classList.remove('cb-shake'); }, 2000);
-        }
-        playNotification();
-        idleTimer = setTimeout(showIdleReminder, idleInterval);
-      } else {
-        removeIdleReminder();
-        hideInputBar();
-        var idleMsg = 'Hi, are you still there? &#x1F44B;';
-        dedupeLastBotMsg(idleMsg);
-        var wrap = document.createElement('div');
-        wrap.id = IDLE_MSG_ID;
-        wrap.className = 'cb-bot-msg-wrap';
-        wrap.setAttribute('style', WRAP_STYLE);
-        wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + idleMsg + '</div>';
-        msgs.appendChild(wrap); scroll();
-        showIdleButtons();
+      idleInterval += 40000;
+
+      /* Badge + shake + sound on the launcher fire every time, regardless of
+       * whether the chat window is open or closed. */
+      document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
+      var idleLauncher = document.getElementById('bot-launcher');
+      if (idleLauncher) {
+        idleLauncher.classList.remove('cb-shake');
+        void idleLauncher.offsetWidth;
+        idleLauncher.classList.add('cb-shake');
+        setTimeout(function () { idleLauncher.classList.remove('cb-shake'); }, 2000);
       }
+      playNotification();
+
+      removeIdleReminder();
+      hideInputBar();
+      var idleMsg = 'Hi, are you still there? &#x1F44B;';
+      dedupeLastBotMsg(idleMsg);
+      var wrap = document.createElement('div');
+      wrap.id = IDLE_MSG_ID;
+      wrap.className = 'cb-bot-msg-wrap';
+      wrap.setAttribute('style', WRAP_STYLE);
+      wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + idleMsg + '</div>';
+      msgs.appendChild(wrap); scroll();
+      showIdleButtons();
+      awaitingIdleResponse = false;
+      idleTimer = setTimeout(showIdleReminder, idleInterval);
     }
 
     function showIdleButtons() {
