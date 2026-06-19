@@ -392,6 +392,24 @@
       msgs.appendChild(d); scroll();
     }
 
+    /* Inserts the teaser greeting question + the user's Yes/No reply at the very
+     * top of the thread (before the static "Hello! What kind of project..."
+     * block), so the greeting card's question reads first when opened via Yes/No. */
+    function prependGreetingExchange(answer) {
+      var q = document.createElement('div');
+      q.className = 'cb-bot-msg-wrap';
+      q.setAttribute('style', WRAP_STYLE);
+      q.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">Are you currently exploring custom software or app development for your business?</div>';
+      msgs.insertBefore(q, msgs.firstChild);
+
+      var a = document.createElement('div');
+      a.setAttribute('style', USER_STYLE);
+      a.className = 'cb-user-msg';
+      a.textContent = answer;
+      msgs.insertBefore(a, q.nextSibling);
+      scroll();
+    }
+
     function showTyping() {
       var w = document.createElement('div');
       w.className = 'cb-typing-wrap'; w.id = 'cb-typing';
@@ -709,15 +727,11 @@
         document.getElementById('lead-bot').style.display = 'block';
         setLauncherVisible(true);
         startChat();
-        if (prefillText === 'No') {
+        if (prefillText === 'No' || prefillText) {
           setTimeout(function () {
-            addUserMsg(prefillText);
-            showNoFollowUp();
-          }, 500);
-        } else if (prefillText) {
-          setTimeout(function () {
-            addUserMsg(prefillText);
-            askAI(prefillText, false);
+            cancelTeaserFlow();
+            prependGreetingExchange(prefillText);
+            if (prefillText === 'No') { showNoFollowUp(); } else { askAI(prefillText, false); }
           }, 500);
         }
       }, 200);
