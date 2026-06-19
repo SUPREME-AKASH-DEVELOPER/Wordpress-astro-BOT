@@ -1,0 +1,14 @@
+{
+  "name": "demski-chatbot-widget",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Standalone embeddable lead-capture chatbot for The Demski Group",
+  "scripts": {
+    "dev": "npx serve . -l 3000",
+    "start": "npx serve . -l 3000"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.4"
+  }
+}
