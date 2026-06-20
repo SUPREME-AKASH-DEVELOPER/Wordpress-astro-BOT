@@ -38,6 +38,13 @@
   var IDLE_MSG_ID  = 'cb-idle-msg';
   var IDLE_BTNS_ID = 'cb-idle-btns';
 
+  var INTENT_OPTIONS = {
+    'New startup or app idea':   ['Mobile App', 'Web App', 'SaaS Platform', 'eCommerce', 'Other'],
+    'Software for my business':  ['Automate Workflows', 'Customer Management', 'Reporting & Analytics', 'Employee Tools', 'Other'],
+    'Digital marketing help':    ['Increase Website Traffic', 'Generate More Leads', 'Social Media Growth', 'Paid Advertising', 'Other'],
+    'Just exploring':            ['Planning a Future Project', 'Comparing Vendors', 'Learning About Tech', 'Just Curious']
+  };
+
   var AV_STYLE =
     'width:28px!important;height:28px!important;min-width:28px!important;' +
     'max-width:28px!important;border-radius:50%!important;object-fit:cover!important;' +
@@ -505,6 +512,44 @@
       });
     }
 
+    /* ── MCQ-FIRST FREE-TEXT CLASSIFIER ──
+     * The widget is MCQ-first: every scripted step shows its options as
+     * buttons. If a user types instead of tapping, we still try to keep
+     * them moving through the script rather than dropping into open AI
+     * chat — first via cheap local keyword matching, then (only if that's
+     * inconclusive) a single silent classification call to /api/chat that
+     * does NOT touch chatHistory or render as a visible bot message. */
+    function localKeywordMatch(text, options, keywordMap) {
+      var lower = text.toLowerCase();
+      for (var i = 0; i < options.length; i++) {
+        var opt = options[i];
+        var patterns = keywordMap[opt];
+        if (patterns && patterns.test(lower)) return opt;
+      }
+      return null;
+    }
+
+    function classifyFreeText(text, options, onMatch, onNoMatch) {
+      var prompt = 'The user was asked a question and given these exact options: ' +
+        options.map(function (o) { return '"' + o + '"'; }).join(', ') +
+        '. The user typed: "' + text + '". ' +
+        'Reply with ONLY the single option text that best matches their intent, copied exactly as given above. ' +
+        'If none of the options reasonably match, reply with exactly: NONE. Do not explain, do not add punctuation.';
+
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var reply = (data.reply || '').trim();
+          var matched = options.filter(function (o) { return o.toLowerCase() === reply.toLowerCase(); })[0];
+          if (matched) onMatch(matched); else onNoMatch();
+        })
+        .catch(function () { onNoMatch(); });
+    }
+
     function showInputBar() {
       inputBar.setAttribute('style', 'display:flex!important;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.45);flex-shrink:0;');
       setTimeout(function () { scroll(); inputEl.focus(); }, 50);
@@ -850,13 +895,7 @@
 
     /* ── INTENT OPTIONS ── */
     function showIntentOptions(intent) {
-      var intentOptions = {
-        'New startup or app idea':   ['Mobile App', 'Web App', 'SaaS Platform', 'eCommerce', 'Other'],
-        'Software for my business':  ['Automate Workflows', 'Customer Management', 'Reporting & Analytics', 'Employee Tools', 'Other'],
-        'Digital marketing help':    ['Increase Website Traffic', 'Generate More Leads', 'Social Media Growth', 'Paid Advertising', 'Other'],
-        'Just exploring':            ['Planning a Future Project', 'Comparing Vendors', 'Learning About Tech', 'Just Curious']
-      };
-      var opts = intentOptions[intent] || ['Mobile App', 'Web App', 'Something else'];
+      var opts = INTENT_OPTIONS[intent] || ['Mobile App', 'Web App', 'Something else'];
       var oldIntent = document.getElementById('cb-intent'); if (oldIntent) oldIntent.remove();
       var div = document.createElement('div'); div.className = 'cb-qbtns cb-grid'; div.id = 'cb-intent';
       opts.forEach(function (o) {
@@ -887,8 +926,9 @@
     /* ── TIMELINE ── */
     function showTimelineStep() {
       step = 2; resetIdleTimer();
-      hideInputBar();
       botReply('When would you like to go live?', function () {
+        showInputBar();
+        inputEl.placeholder = 'Type your answer...';
         var oldTimeline = document.getElementById('cb-timeline'); if (oldTimeline) oldTimeline.remove();
         var div = document.createElement('div'); div.className = 'cb-qbtns cb-grid'; div.id = 'cb-timeline';
         ['ASAP', '1-3 months', '3-6 months', '6+ months', 'Not sure yet'].forEach(function (tv) {
@@ -911,8 +951,9 @@
     /* ── BUDGET ── */
     function showBudgetStep() {
       step = 3; resetIdleTimer();
-      hideInputBar();
       botReply('Do you have a budget range in mind for this project?', function () {
+        showInputBar();
+        inputEl.placeholder = 'Type your answer...';
         var oldBudget = document.getElementById('cb-budget'); if (oldBudget) oldBudget.remove();
         var div = document.createElement('div'); div.className = 'cb-bbtns cb-grid'; div.id = 'cb-budget';
         ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'].forEach(function (bv) {
@@ -1048,25 +1089,78 @@
         return;
       }
 
+      /* Steps 1-3 are MCQ-first: a typed answer first tries to match one of
+       * the step's own options (local keywords, then a silent AI classify
+       * call) so the flow still advances like a tap would. Only when
+       * nothing matches do we ask for clarification and re-show buttons. */
       if (step === 1) {
         var el = document.getElementById('cb-intent'); if (el) el.remove();
-        /* User typed instead of picking an intent-detail button — ask the AI
-         * to respond conversationally, then re-show the button options. */
-        askAI(val, false, function () { showIntentOptions(lead.intent); });
+        var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
+        var intentDetailKw = {
+          'Mobile App': /mobile|ios|android|app\b/,
+          'Web App': /web app|website app|web-based/,
+          'SaaS Platform': /saas|subscription|platform/,
+          'eCommerce': /ecommerce|e-commerce|shop|store|sell online/,
+          'Automate Workflows': /automat|workflow/,
+          'Customer Management': /crm|customer management|client management/,
+          'Reporting & Analytics': /report|analytic|dashboard/,
+          'Employee Tools': /employee|staff|hr tool/,
+          'Increase Website Traffic': /traffic/,
+          'Generate More Leads': /lead/,
+          'Social Media Growth': /social media|social growth/,
+          'Paid Advertising': /ads|advertis|ppc/,
+          'Planning a Future Project': /planning|future/,
+          'Comparing Vendors': /compar|vendor|shopping around/,
+          'Learning About Tech': /learn|research/,
+          'Just Curious': /curious|just looking/
+        };
+        var localMatch1 = localKeywordMatch(val, intentDetailOpts, intentDetailKw);
+        if (localMatch1) { lead.intent_detail = localMatch1; step = 2; showTimelineStep(); return; }
+        classifyFreeText(val, intentDetailOpts, function (matched) {
+          lead.intent_detail = matched; step = 2; showTimelineStep();
+        }, function () {
+          botReply("Just to make sure I capture this right, which of these fits best?", function () { showIntentOptions(lead.intent); });
+        });
         return;
       }
 
       if (step === 2) {
         var elT = document.getElementById('cb-timeline'); if (elT) elT.remove();
-        /* User typed instead of picking a timeline button — ask the AI
-         * to respond conversationally, then re-show the button options. */
-        askAI(val, false, function () { showTimelineStep(); });
+        var timelineOpts = ['ASAP', '1-3 months', '3-6 months', '6+ months', 'Not sure yet'];
+        var timelineKw = {
+          'ASAP': /asap|right away|immediately|urgent|now\b/,
+          '1-3 months': /1-3|1 to 3|one to three|next (month|quarter)|few months/,
+          '3-6 months': /3-6|3 to 6|three to six/,
+          '6+ months': /6\+|6 months|six months|later this year|next year/,
+          'Not sure yet': /not sure|no idea|don't know|undecided|flexible/
+        };
+        var localMatch2 = localKeywordMatch(val, timelineOpts, timelineKw);
+        if (localMatch2) { lead.timeline = localMatch2; showBudgetStep(); return; }
+        classifyFreeText(val, timelineOpts, function (matched) {
+          lead.timeline = matched; showBudgetStep();
+        }, function () {
+          botReply("Just to make sure I capture this right, which of these fits best?", function () { showTimelineStep(); });
+        });
         return;
       }
 
       if (step === 3) {
         var elB = document.getElementById('cb-budget'); if (elB) elB.remove();
-        askAI(val, false, function () { showBudgetStep(); });
+        var budgetOpts = ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'];
+        var budgetKw = {
+          'Under $10k': /under.?10|less than.?10|below.?10/,
+          '$10k - $25k': /10.?(k|000).{0,5}25|between 10 and 25/,
+          '$25k - $50k': /25.?(k|000).{0,5}50|between 25 and 50/,
+          '$50k+': /50.?(k|000)\+|over.?50|more than.?50|above.?50/,
+          'Not sure yet': /not sure|no idea|don't know|undecided|flexible/
+        };
+        var localMatch3 = localKeywordMatch(val, budgetOpts, budgetKw);
+        if (localMatch3) { lead.budget = localMatch3; showNotesStep(); return; }
+        classifyFreeText(val, budgetOpts, function (matched) {
+          lead.budget = matched; showNotesStep();
+        }, function () {
+          botReply("Just to make sure I capture this right, which of these fits best?", function () { showBudgetStep(); });
+        });
         return;
       }
 
