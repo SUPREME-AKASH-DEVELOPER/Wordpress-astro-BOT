@@ -6,7 +6,7 @@ const NOTIFY_TO = 'info@ethixweb.com';
 const FROM_EMAIL = 'akash@ethixweb.com';
 
 const LEAD_FIELDS = [
-  'intent', 'intent_detail', 'project_description', 'budget',
+  'intent', 'intent_detail', 'timeline', 'budget', 'project_notes',
   'name', 'phone', 'email', 'cta_choice',
   'page', 'page_name',
   'utm_source', 'utm_campaign', 'utm_medium', 'utm_term', 'utm_content', 'gclid',
