@@ -530,11 +530,24 @@
     }
 
     function classifyFreeText(text, options, onMatch, onNoMatch) {
+      if (aiRequestInFlight) return;
+      aiRequestInFlight = true;
+      showTyping();
+      inputEl.disabled = true;
+
       var prompt = 'The user was asked a question and given these exact options: ' +
         options.map(function (o) { return '"' + o + '"'; }).join(', ') +
         '. The user typed: "' + text + '". ' +
         'Reply with ONLY the single option text that best matches their intent, copied exactly as given above. ' +
         'If none of the options reasonably match, reply with exactly: NONE. Do not explain, do not add punctuation.';
+
+      function finish(fn) {
+        aiRequestInFlight = false;
+        hideTyping();
+        inputEl.disabled = false;
+        fn();
+        setTimeout(function () { inputEl.focus(); }, 100);
+      }
 
       fetch(API_URL, {
         method: 'POST',
@@ -545,9 +558,9 @@
         .then(function (data) {
           var reply = (data.reply || '').trim();
           var matched = options.filter(function (o) { return o.toLowerCase() === reply.toLowerCase(); })[0];
-          if (matched) onMatch(matched); else onNoMatch();
+          finish(function () { matched ? onMatch(matched) : onNoMatch(); });
         })
-        .catch(function () { onNoMatch(); });
+        .catch(function () { finish(onNoMatch); });
     }
 
     function showInputBar() {
@@ -812,16 +825,13 @@
     }
 
     /* ── "NO" FOLLOW-UP (hardcoded persuasive nudge + quick replies) ── */
-    function showNoFollowUp() {
-      chatHistory.push({ role: 'user', content: 'No' });
-      var msg = "Even if you're not actively looking, understanding what's possible can spark ideas. Many of our 250+ clients didn't realize how much custom software could transform their business. What's one thing in your business that feels harder than it should be?";
-      addBotMsg(msg);
-      chatHistory.push({ role: 'assistant', content: msg });
-      resetIdleTimer();
+    var NO_FOLLOWUP_OPTS = ['Managing data', 'Customer interactions', 'Team coordination', 'Nothing really'];
+
+    function renderNoFollowUpButtons() {
+      var old = document.getElementById('cb-no-followup'); if (old) old.remove();
       var div = document.createElement('div');
       div.className = 'cb-qbtns cb-grid'; div.id = 'cb-no-followup';
-      var opts = ['Managing data', 'Customer interactions', 'Team coordination', 'Nothing really'];
-      div.innerHTML = opts.map(function (o) {
+      div.innerHTML = NO_FOLLOWUP_OPTS.map(function (o) {
         return '<button data-nofollow="' + o + '">' + o + '</button>';
       }).join('');
       msgs.appendChild(div); scrollToLatestBotMsg();
@@ -836,6 +846,15 @@
           };
         })(btns[i]);
       }
+    }
+
+    function showNoFollowUp() {
+      chatHistory.push({ role: 'user', content: 'No' });
+      var msg = "Even if you're not actively looking, understanding what's possible can spark ideas. Many of our 250+ clients didn't realize how much custom software could transform their business. What's one thing in your business that feels harder than it should be?";
+      addBotMsg(msg);
+      chatHistory.push({ role: 'assistant', content: msg });
+      resetIdleTimer();
+      renderNoFollowUpButtons();
     }
 
     /* ── START CHAT ── */
@@ -1087,23 +1106,54 @@
       }
       addUserMsg(val); inputEl.value = ''; resetIdleTimer();
 
-      /* Step 0: user types before picking an option — be conversational */
+      /* "No, not looking" teaser follow-up: MCQ-first like every other step.
+       * A typed answer first tries local keywords, then a silent AI
+       * classify call against this step's own 4 options. Only when nothing
+       * matches do we clarify and re-show the same buttons — never drop
+       * into open AI chat, same rule as steps 1-3. */
+      var noFollowUpDiv = document.getElementById('cb-no-followup');
+      if (noFollowUpDiv) {
+        var nfKw = {
+          'Managing data': /data|report|analytic|spreadsheet|tracking/,
+          'Customer interactions': /customer|client|support|service/,
+          'Team coordination': /team|staff|employee|coordinat|communication/,
+          'Nothing really': /nothing|none|not really|n\/a/
+        };
+        var nfMatch = localKeywordMatch(val, NO_FOLLOWUP_OPTS, nfKw);
+        if (nfMatch) { noFollowUpDiv.remove(); askAI(nfMatch, false); return; }
+        classifyFreeText(val, NO_FOLLOWUP_OPTS, function (matched) {
+          noFollowUpDiv.remove(); askAI(matched, false);
+        }, function () {
+          botReply("Just to make sure I capture this right, which of these fits best?", function () {
+            renderNoFollowUpButtons();
+          });
+        });
+        return;
+      }
+
+      /* Step 0: user types before picking an option — try keyword match,
+       * then AI classify, then clarify + re-show the same buttons. MCQ-first:
+       * never drop into open AI chat just because nothing matched. */
       if (step === 0) {
         var lower = val.toLowerCase();
+        var intentOpts0 = ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'];
         var intentGuess = null;
         if (/startup|app idea|new product|mvp|launch/.test(lower)) intentGuess = 'New startup or app idea';
         else if (/business|company|software|workflow|automate/.test(lower)) intentGuess = 'Software for my business';
         else if (/market|seo|ads|traffic|social|leads/.test(lower)) intentGuess = 'Digital marketing help';
+        else if (/explor|curious|just looking|browsing/.test(lower)) intentGuess = 'Just exploring';
         if (intentGuess) { step1Handler(intentGuess, true); return; }
-        /* No clear intent match — let the AI carry the conversation instead
-         * of forcing the button list again. */
-        askAI(val, false, function () {
-          var s1 = document.createElement('div'); s1.className = 'cb-qbtns cb-grid'; s1.id = 'cb-step1';
-          ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'].forEach(function (v) {
-            var b = document.createElement('button'); b.textContent = v;
-            b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
+        classifyFreeText(val, intentOpts0, function (matched) {
+          step1Handler(matched, true);
+        }, function () {
+          botReply("Just to make sure I capture this right, which of these fits best?", function () {
+            var s1 = document.createElement('div'); s1.className = 'cb-qbtns cb-grid'; s1.id = 'cb-step1';
+            intentOpts0.forEach(function (v) {
+              var b = document.createElement('button'); b.textContent = v;
+              b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
+            });
+            msgs.appendChild(s1); scrollToLatestBotMsg();
           });
-          msgs.appendChild(s1); scrollToLatestBotMsg();
         });
         return;
       }
