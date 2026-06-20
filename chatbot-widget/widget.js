@@ -1030,6 +1030,13 @@
     }
 
     /* ── SUBMIT ── */
+    var DEBUG = /(^|[?&])cb_debug=1\b/.test(location.search);
+    function logDebug() {
+      if (!DEBUG) return;
+      var args = ['[Demski Chatbot]'].concat(Array.prototype.slice.call(arguments));
+      console.log.apply(console, args);
+    }
+
     var LEAD_URL = (function () {
       try {
         var base = new URL(SCRIPT_EL.src, location.href).href.replace(/\/[^/]*$/, '/');
@@ -1051,11 +1058,23 @@
         utm_medium: lead.utm_medium, utm_term: lead.utm_term,
         utm_content: lead.utm_content, gclid: lead.gclid
       };
+      logDebug('submitLead: POSTing payload to', LEAD_URL, p);
       fetch(LEAD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(p)
-      }).catch(function (e) { console.warn('[Demski Chatbot] Lead send failed', e); });
+      }).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          if (!res.ok || !data.ok) {
+            throw new Error('Lead API responded ' + res.status + ': ' + (data.error ? JSON.stringify(data.error) : 'unknown error'));
+          }
+          logDebug('submitLead: success', data);
+        });
+      }).catch(function (e) {
+        console.warn('[Demski Chatbot] Lead send failed:', e.message || e);
+        logDebug('submitLead: failure detail', e);
+        botReply("Hmm, we couldn't confirm that email went through. Don't worry though — please call us at 406-936-3049 or email contact@demskigroup.com directly and we'll take care of you right away.");
+      });
     }
 
     /* ── INPUT HANDLER ── */
