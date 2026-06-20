@@ -1,6 +1,9 @@
 import sgMail from '@sendgrid/mail';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const NOTIFY_TO = ['info@ethixweb.com', 'akash@ethixweb.com'];
 const FROM_EMAIL = 'akash@ethixweb.com';
@@ -74,14 +77,31 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required lead fields (name, email)' });
   }
 
+  function readTemplate(filename) {
+    const candidates = [
+      join(__dirname, '..', 'email-templates', filename),
+      join(__dirname, 'email-templates', filename),
+      join(process.cwd(), 'email-templates', filename),
+    ];
+    for (const candidate of candidates) {
+      try {
+        const content = readFileSync(candidate, 'utf8');
+        log('Loaded template', filename, 'from', candidate);
+        return content;
+      } catch (e) {
+        // try next candidate
+      }
+    }
+    throw new Error('Could not find ' + filename + ' in any of: ' + candidates.join(', '));
+  }
+
   let notificationHtml, confirmationHtml;
   try {
-    const templatesDir = join(process.cwd(), 'email-templates');
-    notificationHtml = readFileSync(join(templatesDir, 'chatbot-lead-notification.html'), 'utf8');
-    confirmationHtml = readFileSync(join(templatesDir, 'chatbot-lead-confirmation.html'), 'utf8');
+    notificationHtml = readTemplate('chatbot-lead-notification.html');
+    confirmationHtml = readTemplate('chatbot-lead-confirmation.html');
   } catch (e) {
-    logError('Failed to read email templates:', e.message);
-    return res.status(500).json({ error: 'Email templates not found on server' });
+    logError('Failed to read email templates:', e.message, '__dirname=', __dirname, 'cwd=', process.cwd());
+    return res.status(500).json({ error: 'Email templates not found on server', detail: e.message, dirname: __dirname, cwd: process.cwd() });
   }
 
   const notificationMsg = {
