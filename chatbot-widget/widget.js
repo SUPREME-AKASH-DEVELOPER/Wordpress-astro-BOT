@@ -814,11 +814,20 @@
         setLauncherVisible(true);
         setBackdropVisible(true);
         startChat();
-        if (prefillText === 'No' || prefillText) {
+        if (prefillText) {
           setTimeout(function () {
             cancelTeaserFlow();
             prependGreetingExchange(prefillText);
-            if (prefillText === 'No') { showNoFollowUp(); } else { askAI(prefillText, false); }
+            if (prefillText === 'No') {
+              showNoFollowUp();
+            } else if (prefillText === 'Yes') {
+              expandUI();
+              botReply('What kind of project do you need help bringing to life?', function () {
+                renderStep0Buttons();
+              });
+            } else {
+              askAI(prefillText, false);
+            }
           }, 500);
         }
       }, 200);
@@ -826,6 +835,25 @@
 
     /* ── "NO" FOLLOW-UP (hardcoded persuasive nudge + quick replies) ── */
     var NO_FOLLOWUP_OPTS = ['Managing data', 'Customer interactions', 'Team coordination', 'Nothing really'];
+    var NO_FOLLOWUP_REPLIES = {
+      'Managing data':          "That's a common one — disorganized data slows everything down. Let's figure out a timeline.",
+      'Customer interactions':  "Got it — smoother customer interactions can make a big difference. Let's figure out a timeline.",
+      'Team coordination':     "Makes sense — better team coordination saves a ton of time. Let's figure out a timeline.",
+      'Nothing really':        "No worries! Let's get a quick sense of timing in case anything comes up."
+    };
+
+    /* Shared by the button click and the typed-text match path: records the
+     * pain point as the lead's intent detail, gives a short hardcoded
+     * contextual reply, then always continues into the scripted Timeline
+     * MCQ — never leaves the user parked in free-text mode. */
+    function selectNoFollowUp(val) {
+      lead.intent = 'Software for my business';
+      lead.intent_detail = val;
+      chatHistory.push({ role: 'user', content: val });
+      botReply(NO_FOLLOWUP_REPLIES[val] || "Got it — let's figure out a timeline.", function () {
+        showTimelineStep();
+      });
+    }
 
     function renderNoFollowUpButtons() {
       var old = document.getElementById('cb-no-followup'); if (old) old.remove();
@@ -842,7 +870,7 @@
             var val = btn.getAttribute('data-nofollow');
             div.remove();
             addUserMsg(val);
-            askAI(val, false);
+            selectNoFollowUp(val);
           };
         })(btns[i]);
       }
@@ -895,6 +923,20 @@
       }
     }
 
+    /* Renders the step-0 intent MCQ (same 4 options as the initial static
+     * markup) into the message thread. Shared by the "Back" path, the
+     * typed-text clarify fallback, and the teaser's "Yes" button so every
+     * entry point into step 0 stays MCQ-first instead of free text. */
+    function renderStep0Buttons() {
+      var old = document.getElementById('cb-step1'); if (old) old.remove();
+      var s1 = document.createElement('div'); s1.className = 'cb-qbtns cb-grid'; s1.id = 'cb-step1';
+      ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'].forEach(function (v) {
+        var b = document.createElement('button'); b.textContent = v;
+        b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
+      });
+      msgs.appendChild(s1); scrollToLatestBotMsg();
+    }
+
     /* ── STEP 1: Intent ── */
     function step1Handler(val, skipUserMsg) {
       expandUI();
@@ -931,12 +973,7 @@
         var el = document.getElementById('cb-intent'); if (el) el.remove();
         lead.intent = ''; step = 0;
         botReply('No problem! What kind of project do you need help bringing to life?', function () {
-          var s1 = document.createElement('div'); s1.className = 'cb-qbtns cb-grid'; s1.id = 'cb-step1';
-          ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'].forEach(function (v) {
-            var b = document.createElement('button'); b.textContent = v;
-            b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
-          });
-          msgs.appendChild(s1); scrollToLatestBotMsg();
+          renderStep0Buttons();
         });
       }));
       msgs.appendChild(div); scrollToLatestBotMsg();
@@ -1120,9 +1157,9 @@
           'Nothing really': /nothing|none|not really|n\/a/
         };
         var nfMatch = localKeywordMatch(val, NO_FOLLOWUP_OPTS, nfKw);
-        if (nfMatch) { noFollowUpDiv.remove(); askAI(nfMatch, false); return; }
+        if (nfMatch) { noFollowUpDiv.remove(); selectNoFollowUp(nfMatch); return; }
         classifyFreeText(val, NO_FOLLOWUP_OPTS, function (matched) {
-          noFollowUpDiv.remove(); askAI(matched, false);
+          noFollowUpDiv.remove(); selectNoFollowUp(matched);
         }, function () {
           botReply("Just to make sure I capture this right, which of these fits best?", function () {
             renderNoFollowUpButtons();
@@ -1147,12 +1184,7 @@
           step1Handler(matched, true);
         }, function () {
           botReply("Just to make sure I capture this right, which of these fits best?", function () {
-            var s1 = document.createElement('div'); s1.className = 'cb-qbtns cb-grid'; s1.id = 'cb-step1';
-            intentOpts0.forEach(function (v) {
-              var b = document.createElement('button'); b.textContent = v;
-              b.onclick = function () { step1Handler(v); }; s1.appendChild(b);
-            });
-            msgs.appendChild(s1); scrollToLatestBotMsg();
+            renderStep0Buttons();
           });
         });
         return;
