@@ -35,8 +35,9 @@
   var BOT_TITLE     = scriptAttr('data-bot-title', 'The Demski Group');
 
   /* ── CONSTANTS ── */
-  var IDLE_MSG_ID  = 'cb-idle-msg';
-  var IDLE_BTNS_ID = 'cb-idle-btns';
+  var IDLE_MSG_ID    = 'cb-idle-msg';
+  var IDLE_BTNS_ID   = 'cb-idle-btns';
+  var IDLE_BUBBLE_ID = 'cb-idle-bubble';
 
   var INTENT_OPTIONS = {
     'New startup or app idea':   ['Mobile App', 'Web App', 'SaaS Platform', 'eCommerce', 'Other'],
@@ -67,6 +68,13 @@
   /* ── STATE ── */
   var step = 0;
   var expanded = false;
+  /* True from the moment the user takes any real conversational action
+   * (MCQ pick, typed message, idle-reply click) — independent of `expanded`,
+   * which only tracks a UI layout switch and stays false on some active
+   * paths (e.g. the teaser's "No" branch). Used by the launcher to decide
+   * whether reopening should resume the chat or show the welcome/teaser
+   * flow; never reset except by an explicit conversation reset. */
+  var conversationStarted = false;
   var cardTimer = null;
   var bubbleTimer = null;
   var badgeTimer = null;
@@ -74,6 +82,7 @@
   var idleTimer = null;
   var idleInterval = 60000;
   var awaitingIdleResponse = false;
+  var idleBubbleTimer = null;
 
   /* ── UTM CAPTURE ── */
   var urlP = {}, saved = {};
@@ -143,11 +152,11 @@
     + '@keyframes cb-badge-pop{from{transform:scale(0);}to{transform:scale(1);}}'
     + '#bot-launcher.cb-shake{animation:cb-shake 2s ease-in-out 0s 1;}'
     + '@keyframes cb-shake{0%,100%{transform:translateY(0) scale(1) translateX(0) rotate(0);}5%{transform:translateY(0) scale(1) translateX(-6px) rotate(-4deg);}10%{transform:translateY(0) scale(1) translateX(6px) rotate(4deg);}15%{transform:translateY(0) scale(1) translateX(-6px) rotate(-4deg);}20%{transform:translateY(0) scale(1) translateX(6px) rotate(4deg);}25%{transform:translateY(0) scale(1) translateX(-6px) rotate(-4deg);}30%{transform:translateY(0) scale(1) translateX(6px) rotate(4deg);}35%{transform:translateY(0) scale(1) translateX(-5px) rotate(-3deg);}40%{transform:translateY(0) scale(1) translateX(5px) rotate(3deg);}45%{transform:translateY(0) scale(1) translateX(-4px) rotate(-2deg);}50%{transform:translateY(0) scale(1) translateX(4px) rotate(2deg);}55%{transform:translateY(0) scale(1) translateX(-3px) rotate(-2deg);}60%{transform:translateY(0) scale(1) translateX(3px) rotate(2deg);}65%{transform:translateY(0) scale(1) translateX(-2px) rotate(-1deg);}70%{transform:translateY(0) scale(1) translateX(2px) rotate(1deg);}75%,100%{transform:translateY(0) scale(1) translateX(0) rotate(0);}}'
-    + '#cb-greeting-bubble{position:fixed;bottom:66px;right:162px;z-index:2147483646;background:#fff;border:2px solid #0154B1;border-radius:18px 18px 18px 4px;box-shadow:0 12px 40px rgba(0,0,0,0.16);padding:12px 16px;max-width:240px;font-family:"Outfit",sans-serif;opacity:0;transform:translateX(10px) scale(.94);transition:opacity .3s,transform .3s;pointer-events:none;display:flex;align-items:center;gap:10px;box-sizing:border-box;}'
-    + '#cb-greeting-bubble.cb-bv{opacity:1;transform:none;pointer-events:all;}'
-    + '#cb-greeting-bubble.cb-bh{opacity:0;transform:translateX(10px) scale(.94);pointer-events:none;}'
-    + '#cb-greeting-bubble p{font-size:14px;color:#222;margin:0;line-height:1.4;font-weight:600;flex:1;cursor:pointer;}'
-    + '#cb-greeting-bubble .cb-bubble-av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 2px #0154B1;}'
+    + '.cb-teaser-bubble{position:fixed;bottom:66px;right:162px;z-index:2147483646;background:#fff;border:2px solid #0154B1;border-radius:18px 18px 18px 4px;box-shadow:0 12px 40px rgba(0,0,0,0.16);padding:12px 16px;max-width:240px;font-family:"Outfit",sans-serif;opacity:0;transform:translateX(10px) scale(.94);transition:opacity .3s,transform .3s;pointer-events:none;display:flex;align-items:center;gap:10px;box-sizing:border-box;}'
+    + '.cb-teaser-bubble.cb-bv{opacity:1;transform:none;pointer-events:all;}'
+    + '.cb-teaser-bubble.cb-bh{opacity:0;transform:translateX(10px) scale(.94);pointer-events:none;}'
+    + '.cb-teaser-bubble p{font-size:14px;color:#222;margin:0;line-height:1.4;font-weight:600;flex:1;cursor:pointer;}'
+    + '.cb-teaser-bubble .cb-bubble-av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 2px #0154B1;}'
     + '.cb-bubble-close{position:absolute;top:6px;right:8px;font-size:15px;color:#ccc;cursor:pointer;line-height:1;}'
     + '.cb-bubble-close:hover{color:#666;}'
     + '#cb-greeting-card{position:fixed;bottom:40px;right:40px;z-index:2147483647;background:#fff;border:2px solid #0154B1;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.18);padding:18px 20px 20px;width:360px;font-family:"Outfit",sans-serif;opacity:0;transform:translateY(16px) scale(.95);transition:opacity .32s,transform .32s;pointer-events:none;box-sizing:border-box;}'
@@ -171,9 +180,11 @@
     + '.cb-gc-input input::placeholder{color:#b3b9c4;}'
     + '.cb-gc-input button{width:32px;height:32px;border-radius:50%;background:#f0f3f8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#0154B1;transition:background .18s;}'
     + '.cb-gc-input button:hover{background:#0154B1;color:#fff;}'
-    + '#lead-bot{position:fixed;bottom:128px;right:48px;z-index:2147483646;animation:cb-pop-in .35s cubic-bezier(.34,1.56,.64,1) both;}'
+    + '#lead-bot{position:fixed;bottom:24px;right:24px;z-index:2147483646;padding:3px;border-radius:25px;background:transparent;box-shadow:0 32px 80px rgba(0,0,0,0.16);animation:cb-pop-in .35s cubic-bezier(.34,1.56,.64,1) both;}'
+    + '#lead-bot::before{content:"";position:absolute;inset:0;border-radius:25px;padding:3px;background:linear-gradient(135deg,#0154B1,#4facfe,#7b5cff,#0154B1);background-size:300% 300%;animation:cb-border-flow 6s ease infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;pointer-events:none;z-index:1;}'
     + '@keyframes cb-pop-in{from{opacity:0;transform:translateY(20px) scale(.96);}to{opacity:1;transform:none;}}'
-    + '.cb-card{width:370px;border-radius:22px;overflow:hidden;background:linear-gradient(160deg,rgba(255,255,255,.82) 0%,rgba(235,244,255,.88) 100%);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 32px 80px rgba(0,0,0,0.16),0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 160px);font-family:"Outfit",sans-serif;border:1px solid rgba(255,255,255,.6);box-sizing:border-box;}'
+    + '@keyframes cb-border-flow{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}'
+    + '.cb-card{width:360px;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.3);backdrop-filter:blur(2.42px) saturate(1.4);-webkit-backdrop-filter:blur(2.42px) saturate(1.4);box-shadow:0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 65px);height:635px;font-family:"Outfit",sans-serif;box-sizing:border-box;}'
     + '.cb-card *{box-sizing:border-box;}'
     + '.cb-header{background:linear-gradient(135deg,#0154B1 0%,#1a7fe8 100%);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}'
     + '.cb-user{display:flex;gap:11px;align-items:center;}'
@@ -183,7 +194,7 @@
     + '.cb-ch-name{font-weight:700;color:#fff;font-size:14px;letter-spacing:.1px;}'
     + '.cb-ch-status{font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;font-weight:400;display:flex;align-items:center;gap:4px;}'
     + '.cb-ch-status::before{content:"";display:inline-block;width:6px;height:6px;background:#22c55e;border-radius:50%;}'
-    + '.cb-close-btn{cursor:pointer;font-size:20px;color:rgba(255,255,255,.7);line-height:1;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s,color .15s;user-select:none;border:none;background:transparent;padding:0;flex-shrink:0;}'
+    + '.cb-close-btn{cursor:pointer;font-size:23px;color:#fff;line-height:1;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s,color .15s;user-select:none;border:none;background:transparent;padding:0;flex-shrink:0;}'
     + '.cb-close-btn:hover{background:rgba(255,255,255,.15);color:#fff;}'
     + '#cb-top-section{display:none;background:linear-gradient(135deg,#0154B1 0%,#1a7fe8 100%);flex-shrink:0;}'
     + '.cb-top-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;}'
@@ -195,7 +206,7 @@
     + '.cb-welcome-role{font-size:12px;color:#888;margin-bottom:20px;}'
     + '.cb-welcome-fine{font-size:10.5px;color:#bbb;text-align:center;margin-top:10px;line-height:1.5;}'
     + '.cb-body-hidden{display:none!important;}'
-    + '.cb-body{flex:1;overflow-y:auto!important;overflow-x:hidden!important;display:flex!important;flex-direction:column!important;gap:8px!important;padding:16px 14px 10px!important;min-height:120px!important;max-height:400px!important;background:rgba(214,230,255,0.25)!important;scrollbar-width:thin;scrollbar-color:#dde1e9 transparent;}'
+    + '.cb-body{flex:1;overflow-y:auto!important;overflow-x:hidden!important;display:flex!important;flex-direction:column!important;gap:8px!important;padding:16px 14px 16px!important;min-height:150px!important;background:rgba(255,255,255,0.35)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)!important;scrollbar-width:thin;scrollbar-color:#dde1e9 transparent;}'
     + '.cb-body::-webkit-scrollbar{width:4px;}'
     + '.cb-body::-webkit-scrollbar-thumb{background:#dde1e9;border-radius:4px;}'
     + '@keyframes cb-msg-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}'
@@ -210,11 +221,11 @@
     + '.cb-typing span:nth-child(2){animation-delay:.18s;}'
     + '.cb-typing span:nth-child(3){animation-delay:.36s;}'
     + '@keyframes cb-blink{0%,80%,100%{opacity:.3;transform:scale(.75);}40%{opacity:1;transform:scale(1);}}'
-    + '.cb-qbtns,.cb-bbtns{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;gap:7px!important;align-items:stretch!important;width:90%!important;margin-left:auto!important;margin-right:0!important;animation:cb-msg-in .3s ease both;}'
+    + '.cb-qbtns,.cb-bbtns{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;gap:8px!important;align-items:stretch!important;width:90%!important;margin-left:auto!important;margin-right:0!important;animation:cb-msg-in .3s ease both;}'
     + '.cb-grid{display:grid!important;grid-template-columns:1fr 1fr!important;grid-auto-rows:minmax(44px,1fr)!important;align-items:stretch!important;}'
-    + '.cb-qbtns button,.cb-bbtns button{background:rgba(255,255,255,.88)!important;color:#0154B1!important;border:1.5px solid #d4e4f7!important;padding:7px 12px!important;border-radius:20px!important;cursor:pointer!important;font-size:13px!important;font-family:"Outfit",sans-serif!important;font-weight:500!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;width:100%!important;height:100%!important;min-height:44px!important;transition:all .18s!important;line-height:1.3!important;box-sizing:border-box!important;box-shadow:0 1px 4px rgba(0,0,0,.05)!important;}'
+    + '.cb-qbtns button,.cb-bbtns button{background:rgba(255,255,255,.88)!important;color:#0154B1!important;border:1.5px solid #d4e4f7!important;padding:7px 12px!important;border-radius:16px!important;cursor:pointer!important;font-size:13px!important;font-family:"Outfit",sans-serif!important;font-weight:500!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;width:100%!important;height:100%!important;min-height:44px!important;transition:all .18s!important;line-height:1.3!important;box-sizing:border-box!important;box-shadow:0 1px 4px rgba(0,0,0,.05)!important;}'
     + '.cb-qbtns button:hover,.cb-bbtns button:hover{background:#0154B1!important;color:#fff!important;border-color:#0154B1!important;box-shadow:0 4px 14px rgba(1,84,177,.22)!important;transform:translateY(-1px)!important;}'
-    + '.cb-back-btn{background:rgba(255,255,255,.88)!important;color:#0154B1!important;border:1.5px solid #d4e4f7!important;padding:7px 12px!important;border-radius:20px!important;cursor:pointer!important;font-size:13px!important;font-family:"Outfit",sans-serif!important;font-weight:500!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;width:100%!important;height:100%!important;min-height:44px!important;transition:all .18s!important;line-height:1.3!important;box-sizing:border-box!important;}'
+    + '.cb-back-btn{background:rgba(255,255,255,.88)!important;color:#0154B1!important;border:1.5px solid #d4e4f7!important;padding:7px 12px!important;border-radius:16px!important;cursor:pointer!important;font-size:13px!important;font-family:"Outfit",sans-serif!important;font-weight:500!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;width:100%!important;height:100%!important;min-height:44px!important;transition:all .18s!important;line-height:1.3!important;box-sizing:border-box!important;}'
     + '.cb-back-btn:hover{background:#0154B1!important;color:#fff!important;border-color:#0154B1!important;box-shadow:0 4px 14px rgba(1,84,177,.22)!important;transform:translateY(-1px)!important;}'
     + '.cb-cta-btns{display:flex;flex-direction:column;gap:8px;animation:cb-msg-in .3s ease both;}'
     + '.cb-cta-btns button{border:none;padding:12px 16px;border-radius:20px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:"Outfit",sans-serif;transition:all .2s;width:100%;text-align:center;}'
@@ -222,8 +233,8 @@
     + '.cb-cta-primary:hover{filter:brightness(.93);transform:translateY(-1px);}'
     + '.cb-cta-secondary{background:#f0f6ff;color:#0154B1;border:1.5px solid #cce0f5;}'
     + '.cb-cta-secondary:hover{background:#0154B1;color:#fff;border-color:#0154B1;}'
-    + '.cb-input-bar{display:none;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.45);flex-shrink:0;}'
-    + '.cb-input-bar input{flex:1;border:1.5px solid rgba(255,255,255,.5);outline:none;border-radius:24px;padding:10px 16px;font-family:"Outfit",sans-serif;font-size:13.5px;color:#111827;background:rgba(255,255,255,.82);transition:border-color .2s,box-shadow .2s;}'
+    + '.cb-input-bar{display:none;align-items:center;gap:8px;padding:18px 12px 20px;border-top:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.45);flex-shrink:0;}'
+    + '.cb-input-bar input{flex:1;border:1.5px solid rgba(255,255,255,.5);outline:none;border-radius:18px;padding:10px 16px;font-family:"Outfit",sans-serif;font-size:13.5px;color:#111827;background:rgba(255,255,255,.82);transition:border-color .2s,box-shadow .2s;}'
     + '.cb-input-bar input:focus{border-color:#0154B1;background:rgba(255,255,255,.95);box-shadow:0 0 0 3px rgba(1,84,177,.1);}'
     + '.cb-input-bar input::placeholder{color:#aab0bc;}'
     + '.cb-input-bar button{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;color:#fff!important;border:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;transition:all .2s;box-shadow:0 3px 10px rgba(1,84,177,.32)!important;opacity:1!important;visibility:visible!important;overflow:visible!important;padding:0!important;}'
@@ -234,11 +245,12 @@
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;border:none!important;display:flex!important;align-items:center!important;justify-content:center!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#fff!important;}'
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;fill:none!important;stroke:#ffffff!important;stroke-width:2.5!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#ffffff!important;}'
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon *{stroke:#ffffff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
-    + '.cb-schedule{display:none;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff!important;font-weight:700;font-size:13.5px;font-family:"Outfit",sans-serif;text-decoration:none!important;padding:13px;letter-spacing:.2px;transition:filter .2s;flex-shrink:0;}'
+    + '.cb-schedule-wrap{display:none;flex-shrink:0;}'
+    + '.cb-schedule{display:flex!important;align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff!important;font-weight:700;font-size:13.5px;font-family:"Outfit",sans-serif;text-decoration:none!important;padding:16px 16px;letter-spacing:.2px;transition:filter .2s;width:100%;box-sizing:border-box;}'
     + '.cb-schedule:hover{filter:brightness(.92);}'
     + '#cb-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.45);z-index:2147483645;opacity:0;pointer-events:none;transition:opacity .25s ease;display:none;}'
     + '#cb-backdrop.cb-backdrop-on{opacity:1;pointer-events:all;}'
-    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;height:100%;height:100dvh;animation:none;display:flex;align-items:stretch;justify-content:stretch;}.cb-card{width:100%;height:100%;max-height:100vh;max-height:100dvh;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
+    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;height:100%;height:100dvh;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;}.cb-card{width:100%;height:100%;max-height:100vh;max-height:100dvh;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
 
   function injectStyles() {
     if (!document.getElementById('cb-font-link')) {
@@ -308,7 +320,7 @@
         '<div id="cb-messages" class="cb-body cb-body-hidden">' +
           '<div style="display:flex!important;align-items:flex-end!important;gap:8px!important;max-width:88%!important;">' +
             '<img src="' + AVATAR_URL + '" style="' + AV_STYLE + '" alt="" onerror="this.src=\'' + AVATAR_FB + '\'" />' +
-            '<div class="cb-bot-msg" style="flex:1!important;">Hello! What kind of project do you need help bringing to life? &#x1F44B;</div>' +
+            '<div class="cb-bot-msg" style="flex:1!important;">Hello! What kind of project do you need help bringing to life?</div>' +
           '</div>' +
           '<div id="cb-step1" class="cb-qbtns cb-grid">' +
             '<button data-step1="New startup or app idea">New startup or app idea</button>' +
@@ -317,7 +329,7 @@
             '<button data-step1="Just exploring">Just exploring</button>' +
           '</div>' +
         '</div>' +
-        '<div class="cb-input-bar" id="cb-input-bar" style="display:none!important;">' +
+        '<div class="cb-input-bar" id="cb-input-bar" style="display:flex!important;align-items:center;gap:8px;padding:18px 12px 20px;border-top:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.45);flex-shrink:0;">' +
           '<input type="text" id="cb-input" placeholder="Type your answer..." autocomplete="off" />' +
           '<button id="cb-send" aria-label="Send" style="opacity:1!important;visibility:visible!important;">' +
             '<svg id="cb-send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;opacity:1!important;visibility:visible!important;">' +
@@ -325,7 +337,9 @@
             '</svg>' +
           '</button>' +
         '</div>' +
-        '<a href="' + CALENDLY_URL + '" target="_blank" rel="noopener" class="cb-schedule" id="cb-schedule-bar" style="display:none!important;">Schedule a Free Consultation</a>' +
+        '<div class="cb-schedule-wrap" id="cb-schedule-wrap" style="display:none!important;">' +
+          '<a href="' + CALENDLY_URL + '" target="_blank" rel="noopener" class="cb-schedule" id="cb-schedule-bar">Schedule a Free Consultation</a>' +
+        '</div>' +
       '</div>';
     document.body.appendChild(win);
 
@@ -340,7 +354,7 @@
     var msgs     = document.getElementById('cb-messages');
     var inputEl  = document.getElementById('cb-input');
     var inputBar = document.getElementById('cb-input-bar');
-    var schedBar = document.getElementById('cb-schedule-bar');
+    var schedBar = document.getElementById('cb-schedule-wrap');
 
     /* AI conversation history — used whenever the user types free text
      * instead of clicking a scripted button. */
@@ -403,6 +417,7 @@
 
     function addUserMsg(text) {
       cancelTeaserFlow();
+      conversationStarted = true;
       var d = document.createElement('div');
       d.setAttribute('style', USER_STYLE);
       d.className = 'cb-user-msg';
@@ -563,17 +578,19 @@
         .catch(function () { finish(onNoMatch); });
     }
 
+    /* The input bar is always visible once the chat is open (set in the
+     * static markup) and must never be hidden again — hideInputBar is kept
+     * as a no-op so every existing call site stays valid without having to
+     * audit/rewrite each one individually. */
     function showInputBar() {
-      inputBar.setAttribute('style', 'display:flex!important;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.45);flex-shrink:0;');
+      inputBar.setAttribute('style', 'display:flex!important;align-items:center;gap:8px;padding:18px 12px 20px;border-top:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.45);flex-shrink:0;');
       setTimeout(function () { scroll(); inputEl.focus(); }, 50);
     }
 
-    function hideInputBar() {
-      inputBar.setAttribute('style', 'display:none!important;');
-    }
+    function hideInputBar() {}
 
     function showScheduleBar() {
-      schedBar.setAttribute('style', 'display:block!important;text-align:center;background:linear-gradient(135deg,#F09300,#f5a623);color:#fff;font-weight:700;font-size:13.5px;font-family:Outfit,sans-serif;text-decoration:none;padding:13px;letter-spacing:0.2px;transition:filter 0.2s;flex-shrink:0;');
+      schedBar.style.setProperty('display', 'block', 'important');
     }
 
     /* ── IDLE ── */
@@ -604,6 +621,7 @@
        * chat window is closed — skip them while the user has it open. */
       var leadBotEl = document.getElementById('lead-bot');
       var chatIsOpen = leadBotEl && leadBotEl.style.display === 'block';
+      var idleMsg = 'Hi, are you still there?';
       if (!chatIsOpen) {
         document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
         var idleLauncher = document.getElementById('bot-launcher');
@@ -614,11 +632,11 @@
           setTimeout(function () { idleLauncher.classList.remove('cb-shake'); }, 2000);
         }
         playNotification();
+        showIdleBubble(idleMsg);
       }
 
       removeIdleReminder();
       hideInputBar();
-      var idleMsg = 'Hi, are you still there? &#x1F44B;';
       dedupeLastBotMsg(idleMsg);
       var wrap = document.createElement('div');
       wrap.id = IDLE_MSG_ID;
@@ -636,19 +654,37 @@
       var div = document.createElement('div');
       div.className = 'cb-qbtns cb-grid'; div.id = IDLE_BTNS_ID;
       var yes = document.createElement('button'); yes.textContent = 'Yes, still here!';
-      yes.onclick = function () { removeIdleReminder(); addUserMsg('Yes, still here!'); resumeStep(); };
+      yes.onclick = function () { answerIdleReminder(); addUserMsg('Yes, still here!'); resumeStep(); };
       var no = document.createElement('button'); no.textContent = "No, I'm done";
       no.onclick = function () {
-        removeIdleReminder(); addUserMsg("No, I'm done");
+        answerIdleReminder(); addUserMsg("No, I'm done");
         awaitingIdleResponse = false; clearTimeout(idleTimer);
-        botReply('No problem! Feel free to come back anytime. &#x1F603;');
+        botReply('No problem! Feel free to come back anytime.');
       };
       div.appendChild(yes); div.appendChild(no); msgs.appendChild(div); scrollToLatestBotMsg();
+    }
+
+    /* Marks the idle question as answered: drops the button row but keeps
+     * the "Hi, are you still there?" bubble permanently in the thread. The
+     * id is cleared so a later showIdleReminder()/removeIdleReminder() call
+     * can't mistake this already-answered bubble for its own active one. */
+    function answerIdleReminder() {
+      var d = document.getElementById(IDLE_BTNS_ID); if (d) d.remove();
+      var b = document.getElementById(IDLE_MSG_ID);
+      if (b) b.removeAttribute('id');
     }
 
     function resumeStep() {
       awaitingIdleResponse = false; resetIdleTimer();
       showInputBar();
+      /* step alone doesn't track every sub-state (e.g. the "No" teaser's
+       * pain-point buttons run entirely at step === 0) — check which MCQ
+       * block was actually on screen before the idle reminder hid it, so
+       * resuming never dead-ends into a plain text message. */
+      if (document.getElementById('cb-no-followup')) {
+        botReply("No problem! Which of these feels closest?", function () { renderNoFollowUpButtons(); });
+        return;
+      }
       if (step === 1) { botReply('No problem! What type of project is it?', function () { showIntentOptions(lead.intent); }); return; }
       if (step === 2) { showTimelineStep(); return; }
       if (step === 3) { showBudgetStep(); return; }
@@ -657,7 +693,11 @@
       if (step === 6) { botReply("What's the best phone number to reach you?"); return; }
       if (step === 7) { botReply("What's the best email to reach you?"); return; }
       if (step === 8) { botReply('Our team already has your details and will be in touch shortly!'); return; }
-      botReply('No problem! Take your time.');
+      /* step === 0 with no recognizable in-progress MCQ block (e.g. the
+       * very first message, before any option was picked) — re-ask the
+       * opening qualification question with its MCQs instead of dropping
+       * into free text. */
+      botReply('No problem! What kind of project do you need help bringing to life?', function () { renderStep0Buttons(); });
     }
 
     /* ── EXPAND UI ── */
@@ -730,9 +770,9 @@
     /* ── GREETING BUBBLE (small, shown after the card) ── */
     function showGreetingBubble() {
       if (expanded || teaserFlowDone || document.getElementById('cb-greeting-bubble')) return;
-      var b = document.createElement('div'); b.id = 'cb-greeting-bubble';
+      var b = document.createElement('div'); b.id = 'cb-greeting-bubble'; b.className = 'cb-teaser-bubble';
       b.innerHTML =
-        '<p id="cb-bopen">Hey! Do you have any questions? &#x1F44B;</p>' +
+        '<p id="cb-bopen">Hey! Do you have any questions?</p>' +
         '<img class="cb-bubble-av" src="' + AVATAR_URL + '" alt="' + BOT_NAME + '" onerror="this.src=\'' + AVATAR_FB + '\'" />' +
         '<span class="cb-bubble-close" id="cb-bclose">&#x00D7;</span>';
       document.body.appendChild(b);
@@ -750,6 +790,35 @@
       var b = document.getElementById('cb-greeting-bubble'); if (!b) return;
       b.classList.remove('cb-bv'); b.classList.add('cb-bh');
       setTimeout(function () { if (b.parentNode) b.remove(); }, 400);
+    }
+
+    /* ── IDLE REMINDER BUBBLE (floating teaser fired alongside the badge/shake
+     * during an active conversation) ── Reuses the .cb-teaser-bubble visuals
+     * but, unlike the pre-conversation greeting bubble, clicking it must
+     * resume the existing chat (launcherClick already knows how) rather than
+     * starting the teaser flow, and it self-hides after a few seconds while
+     * leaving the red badge on. Only one can ever be on screen at a time. */
+    function dismissIdleBubble() {
+      if (idleBubbleTimer) { clearTimeout(idleBubbleTimer); idleBubbleTimer = null; }
+      var b = document.getElementById(IDLE_BUBBLE_ID); if (!b) return;
+      b.classList.remove('cb-bv'); b.classList.add('cb-bh');
+      setTimeout(function () { if (b.parentNode) b.remove(); }, 400);
+    }
+
+    function showIdleBubble(text) {
+      dismissIdleBubble();
+      var b = document.createElement('div'); b.id = IDLE_BUBBLE_ID; b.className = 'cb-teaser-bubble';
+      b.innerHTML =
+        '<p id="cb-ibopen">' + text + '</p>' +
+        '<img class="cb-bubble-av" src="' + AVATAR_URL + '" alt="' + BOT_NAME + '" onerror="this.src=\'' + AVATAR_FB + '\'" />' +
+        '<span class="cb-bubble-close" id="cb-ibclose">&#x00D7;</span>';
+      document.body.appendChild(b);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { b.classList.add('cb-bv'); });
+      });
+      document.getElementById('cb-ibclose').onclick = function (e) { e.stopPropagation(); dismissIdleBubble(); };
+      document.getElementById('cb-ibopen').onclick   = function () { dismissIdleBubble(); launcherClick(); };
+      idleBubbleTimer = setTimeout(dismissIdleBubble, 7000);
     }
 
     /* No interaction on the bubble for 40s → red badge on the launcher avatar. */
@@ -781,7 +850,7 @@
       setTimeout(function () {
         expanded = true;
         document.getElementById('lead-bot').style.display = 'block';
-        setLauncherVisible(true);
+        setLauncherVisible(false);
         setBackdropVisible(true);
         document.getElementById('cb-welcome').style.display = 'none';
         msgs.classList.remove('cb-body-hidden');
@@ -789,7 +858,7 @@
         resetIdleTimer();
         msgs.innerHTML = '';
         hideInputBar();
-        addBotMsg('Hi, are you still there? &#x1F44B;');
+        addBotMsg('Hi, are you still there?');
         showIdleButtons();
       }, 200);
     }
@@ -811,12 +880,13 @@
       dismissBubble();
       setTimeout(function () {
         document.getElementById('lead-bot').style.display = 'block';
-        setLauncherVisible(true);
+        setLauncherVisible(false);
         setBackdropVisible(true);
         startChat();
         if (prefillText) {
           setTimeout(function () {
             cancelTeaserFlow();
+            conversationStarted = true;
             prependGreetingExchange(prefillText);
             if (prefillText === 'No') {
               showNoFollowUp();
@@ -913,7 +983,7 @@
       var win = document.getElementById('lead-bot');
       var isOpen = (win.style.display === 'none' || win.style.display === '');
       win.style.display = isOpen ? 'block' : 'none';
-      setLauncherVisible(true);
+      setLauncherVisible(!isOpen);
       setBackdropVisible(isOpen);
       if (isOpen) {
         cancelTeaserFlow();
@@ -921,6 +991,46 @@
         dismissBubble();
         setTimeout(function () { startChat(); }, 400);
       }
+    }
+
+    /* Re-shows the teaser card on demand, bypassing showGreetingCard's
+     * one-shot guards (expanded/teaserFlowDone/already-rendered) — those
+     * guards exist only to stop the *automatic* first-load popup from
+     * reappearing uninvited, not to block an explicit avatar click. */
+    function reopenTeaserCard() {
+      if (cardTimer)  { clearTimeout(cardTimer);  cardTimer  = null; }
+      if (bubbleTimer) { clearTimeout(bubbleTimer); bubbleTimer = null; }
+      if (badgeTimer)  { clearTimeout(badgeTimer);  badgeTimer  = null; }
+      var badge = document.getElementById('cb-launcher-badge');
+      if (badge) badge.classList.remove('cb-badge-on');
+      dismissBubble();
+      var existing = document.getElementById('cb-greeting-card');
+      if (existing) existing.remove();
+      var wasExpanded = expanded, wasTeaserDone = teaserFlowDone;
+      expanded = false; teaserFlowDone = false;
+      showGreetingCard();
+      expanded = wasExpanded; teaserFlowDone = wasTeaserDone;
+    }
+
+    /* ── AVATAR LAUNCHER CLICK ──
+     * The avatar's only job is: full chat open → close it (toggleBot);
+     * full chat closed → resume exactly where the user left off. For a
+     * first-time visitor (no conversation started yet) that means showing
+     * the small teaser card, same as the existing teaser flow — the full
+     * chat only opens once they interact with it (Yes/No/send). But once
+     * `conversationStarted` is true (any MCQ pick, typed message, or idle
+     * reply — set in addUserMsg, which every one of those paths funnels
+     * through), a conversation already exists, so reopening must go
+     * straight back to the full chat feed instead of restarting the
+     * teaser/welcome flow on top of existing history. Checking widget
+     * visibility alone isn't enough here — minimizing and reopening must
+     * never be treated as "no conversation yet". */
+    function launcherClick() {
+      if (conversationStarted) { toggleBot(); return; }
+      var win = document.getElementById('lead-bot');
+      var chatIsOpen = !(win.style.display === 'none' || win.style.display === '');
+      if (chatIsOpen) { toggleBot(); return; }
+      reopenTeaserCard();
     }
 
     /* Renders the step-0 intent MCQ (same 4 options as the initial static
@@ -1081,7 +1191,7 @@
       if (sendBtn) sendBtn.disabled = true;
       botReply(choice === 'Book a Google Meet'
         ? "Great! We're opening the calendar now. Pick a time that works for you. A confirmation will also be sent to " + lead.email + '!'
-        : 'Perfect! We\'ll send everything over to ' + lead.email + ' shortly. Talk soon! &#x1F603;');
+        : 'Perfect! We\'ll send everything over to ' + lead.email + ' shortly. Talk soon!');
       submitLead();
     }
 
@@ -1139,7 +1249,7 @@
       var val = inputEl.value.trim(); if (!val) return;
       cancelTeaserFlow();
       if (awaitingIdleResponse) {
-        removeIdleReminder(); addUserMsg(val); inputEl.value = ''; resumeStep(); return;
+        answerIdleReminder(); addUserMsg(val); inputEl.value = ''; resumeStep(); return;
       }
       addUserMsg(val); inputEl.value = ''; resetIdleTimer();
 
@@ -1304,7 +1414,7 @@
     /* ── WIRE UP DOM EVENTS ── */
     document.getElementById('cb-close-compact').onclick  = toggleBot;
     document.getElementById('cb-close-expanded').onclick = toggleBot;
-    document.getElementById('bot-launcher').onclick      = toggleBot;
+    document.getElementById('bot-launcher').onclick      = launcherClick;
     document.getElementById('cb-backdrop').onclick       = toggleBot;
     document.getElementById('cb-send').onclick           = handleInput;
     inputEl.addEventListener('keypress', function (e) { if (e.key === 'Enter') handleInput(); });
