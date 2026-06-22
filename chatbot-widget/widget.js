@@ -510,7 +510,7 @@
         aiRequestInFlight = false;
         hideTyping();
         inputEl.disabled = false;
-        var reply = data.reply || "I'm having a little trouble right now. Please try again or call us at 406-936-3049.";
+        var reply = (data.reply || "I'm having a little trouble right now. Please try again or call us at 406-936-3049.").replace(/—/g, ',');
         chatHistory.push({ role: 'assistant', content: reply });
         addBotMsg(reply.replace(/\n/g, '<br>'));
         resetIdleTimer();
@@ -906,9 +906,9 @@
     /* ── "NO" FOLLOW-UP (hardcoded persuasive nudge + quick replies) ── */
     var NO_FOLLOWUP_OPTS = ['Managing data', 'Customer interactions', 'Team coordination', 'Nothing really'];
     var NO_FOLLOWUP_REPLIES = {
-      'Managing data':          "That's a common one — disorganized data slows everything down. Let's figure out a timeline.",
-      'Customer interactions':  "Got it — smoother customer interactions can make a big difference. Let's figure out a timeline.",
-      'Team coordination':     "Makes sense — better team coordination saves a ton of time. Let's figure out a timeline.",
+      'Managing data':          "That's a common one, disorganized data slows everything down. Let's figure out a timeline.",
+      'Customer interactions':  "Got it, smoother customer interactions can make a big difference. Let's figure out a timeline.",
+      'Team coordination':     "Makes sense, better team coordination saves a ton of time. Let's figure out a timeline.",
       'Nothing really':        "No worries! Let's get a quick sense of timing in case anything comes up."
     };
 
@@ -920,7 +920,7 @@
       lead.intent = 'Software for my business';
       lead.intent_detail = val;
       chatHistory.push({ role: 'user', content: val });
-      botReply(NO_FOLLOWUP_REPLIES[val] || "Got it — let's figure out a timeline.", function () {
+      botReply(NO_FOLLOWUP_REPLIES[val] || "Got it, let's figure out a timeline.", function () {
         showTimelineStep();
       });
     }
@@ -1239,7 +1239,7 @@
       }).catch(function (e) {
         console.warn('[Demski Chatbot] Lead send failed:', e.message || e);
         logDebug('submitLead: failure detail', e);
-        botReply("Hmm, we couldn't confirm that email went through. Don't worry though — please call us at 406-936-3049 or email contact@demskigroup.com directly and we'll take care of you right away.");
+        botReply("Hmm, we couldn't confirm that email went through. Don't worry though, please call us at 406-936-3049 or email contact@demskigroup.com directly and we'll take care of you right away.");
       });
     }
 
