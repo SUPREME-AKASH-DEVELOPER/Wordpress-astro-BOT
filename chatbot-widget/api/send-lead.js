@@ -5,8 +5,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const NOTIFY_TO = ['info@ethixweb.com', 'akash@ethixweb.com'];
-const FROM_EMAIL = 'akash@ethixweb.com';
+const NOTIFY_TO = ['andrew.demski@demskigroupdev.com', 'aaron.demski@demskigroupdev.com'];
+const FROM_EMAIL = 'aaron.demski@demskigroupdev.com';
 
 const LEAD_FIELDS = [
   'intent', 'intent_detail', 'timeline', 'budget', 'project_notes',
