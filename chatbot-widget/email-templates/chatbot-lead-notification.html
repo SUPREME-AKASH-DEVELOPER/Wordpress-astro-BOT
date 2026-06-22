@@ -3,7 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <title>New Chatbot Lead</title>
+<style>
+  /* Dark-mode overrides only — light mode is untouched. Targets classed
+     elements with !important so Gmail/Apple Mail can't auto-invert these
+     specific colors to gray; everything else is left to each client's
+     default dark-mode color transform. */
+  @media (prefers-color-scheme: dark) {
+    .cb-logo-box, .cb-logo-box td { background-color: #ffffff !important; }
+    .cb-dark-text, .cb-dark-text * { color: #ffffff !important; }
+  }
+  [data-ogsc] .cb-logo-box, [data-ogsc] .cb-logo-box td { background-color: #ffffff !important; }
+  [data-ogsc] .cb-dark-text, [data-ogsc] .cb-dark-text * { color: #ffffff !important; }
+</style>
 </head>
 <body style="margin:0; padding:0; background-color:#eef2f8; font-family:'Segoe UI', Helvetica, Arial, sans-serif;">
 
@@ -26,9 +40,9 @@
               <!--[if mso]>
               <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td>
               <![endif]-->
-              <table role="presentation" cellpadding="0" cellspacing="0" align="center" bgcolor="#ffffff" style="background-color:#ffffff !important; border-radius:8px; border:1px solid #e3e8f2; box-shadow:0 1px 4px rgba(11,61,145,0.08);">
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center" bgcolor="#ffffff" class="cb-logo-box" style="background-color:#ffffff !important;">
                 <tr>
-                  <td bgcolor="#ffffff" style="background-color:#ffffff !important; padding:14px 22px; mso-padding-alt:14px 22px;" align="center">
+                  <td bgcolor="#ffffff" style="background-color:#ffffff !important; padding:10px 16px; mso-padding-alt:10px 16px;" align="center">
                     <img src="https://wordpress-astro-bot.vercel.app/Logo3.png" width="170" height="44" alt="The Demski Group" style="display:block; margin:0 auto; border:0; height:44px; width:170px; background-color:#ffffff;">
                   </td>
                 </tr>
@@ -45,7 +59,7 @@
               <span style="display:inline-block; background-color:#fff3e8; color:#d9650f; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:6px 16px; border-radius:20px;">
                 New Lead
               </span>
-              <div style="font-size:24px; line-height:1.35; font-weight:700; color:#10254a; margin-top:14px; font-family:Georgia, 'Times New Roman', serif;">
+              <div class="cb-dark-text" style="font-size:24px; line-height:1.35; font-weight:700; color:#10254a; margin-top:14px; font-family:Georgia, 'Times New Roman', serif;">
                 You've received a new chatbot inquiry
               </div>
               <div style="font-size:13px; color:#8a96b3; margin-top:6px;">
@@ -64,17 +78,17 @@
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#1a2b4a; margin-top:6px;">
                 <tr>
                   <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600;">Name</td>
-                  <td style="padding:10px 0; font-weight:700; color:#10254a;">{{name}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; font-weight:700; color:#10254a;">{{name}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600;">Email</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">
                     <a href="mailto:{{email}}" style="color:#1565c0; text-decoration:none; font-weight:600;">{{email}}</a>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600;">Phone</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; font-weight:600;">
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9; font-weight:600;">
                     <a href="tel:{{phone}}" style="color:#1a2b4a; text-decoration:none;">{{phone}}</a>
                   </td>
                 </tr>
@@ -92,15 +106,15 @@
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#1a2b4a; margin-top:6px;">
                 <tr>
                   <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600; vertical-align:top;">Interest</td>
-                  <td style="padding:10px 0;">{{intent}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0;">{{intent}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Primary Goal</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{intent_detail}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{intent_detail}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Timeline</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{timeline}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{timeline}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Budget</td>
@@ -112,11 +126,11 @@
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Additional Notes</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{project_notes}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{project_notes}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Next Step</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{cta_choice}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{cta_choice}}</td>
                 </tr>
               </table>
             </td>
@@ -132,17 +146,17 @@
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#1a2b4a; margin-top:6px;">
                 <tr>
                   <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600; vertical-align:top;">Page Title</td>
-                  <td style="padding:10px 0;">{{page_name}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0;">{{page_name}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Page URL</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; word-break:break-all;">
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9; word-break:break-all;">
                     <a href="{{page}}" style="color:#1565c0; text-decoration:none;">{{page}}</a>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">Source</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">Website Chatbot</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">Website Chatbot</td>
                 </tr>
               </table>
             </td>
@@ -158,27 +172,27 @@
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#1a2b4a; margin-top:6px;">
                 <tr>
                   <td style="padding:10px 0; width:130px; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Source</td>
-                  <td style="padding:10px 0;">{{utm_source}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0;">{{utm_source}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Campaign</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_campaign}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_campaign}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Medium</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_medium}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_medium}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Term</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_term}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_term}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">UTM Content</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_content}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9;">{{utm_content}}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0; border-top:1px solid #f0f3f9; color:#8a96b3; font-weight:600; vertical-align:top;">GCLID</td>
-                  <td style="padding:10px 0; border-top:1px solid #f0f3f9; word-break:break-all;">{{gclid}}</td>
+                  <td class="cb-dark-text" style="padding:10px 0; border-top:1px solid #f0f3f9; word-break:break-all;">{{gclid}}</td>
                 </tr>
               </table>
             </td>
