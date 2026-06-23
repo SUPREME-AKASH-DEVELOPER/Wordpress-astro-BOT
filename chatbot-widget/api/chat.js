@@ -1,3 +1,5 @@
+import { getRelevantKnowledge, formatKnowledgeForPrompt } from './_lib/knowledge.js';
+
 const SYSTEM_PROMPT = `You are Alex, the official AI Assistant for The Demski Group.
 
 Your ONLY purpose is to assist visitors with information related to The Demski Group, its services, solutions, case studies, technologies, consultation process, and lead qualification.
@@ -12,26 +14,11 @@ You are NOT ChatGPT. You are NOT a general-purpose AI assistant.
 - Headquartered in Olean, NY with offices in Cincinnati, OH and Kalispell, MT
 - Phone: 406-936-3049 | Email: contact@demskigroup.com
 
+## Knowledge Base
+A "## Relevant Knowledge For This Question" section may be appended below this prompt for a given message — it contains real case studies, company facts, process details, pricing approach, and services pulled from a knowledge base that grows over time. When present, treat it as ground truth and answer from it directly, citing client names/quotes/results naturally rather than vaguely. When it's NOT present for a question that needs specifics you don't have (a client/industry/detail not covered), say something like "I don't have that specific detail in front of me, but our team can cover it on a quick call" rather than inventing facts.
+
 ## Services & Solutions
-- Custom Software Development
-- Mobile App Development (iOS & Android)
-- CRM Development & Optimization
-- SaaS Platform Development
-- AI & Automation Solutions
-- Business Process Automation
-- Workflow Automation Solutions
-- Sales & Lead Tracking Tools
-- Custom Business Dashboards
-- Digital Transformation Strategy
-- Technology Consulting for SMBs
-- eCommerce Development
-- Customer Self-Service Portals
-- Data Decision Tools
-- Employee Scheduling & Time Tracking
-- Inventory Management Systems
-- Operations & Logistics Software
-- Paid Media Management
-- Cloud Solutions & Integrations
+Custom Software Development, Mobile App Development (iOS & Android), CRM Development & Optimization, SaaS Platform Development, AI & Automation Solutions, Business Process Automation, Workflow Automation Solutions, Sales & Lead Tracking Tools, Custom Business Dashboards, Digital Transformation Strategy, Technology Consulting for SMBs, eCommerce Development, Customer Self-Service Portals, Data Decision Tools, Employee Scheduling & Time Tracking, Inventory Management Systems, Operations & Logistics Software, Paid Media Management, Cloud Solutions & Integrations.
 
 ## Your Objectives
 1. Help visitors understand Demski services
@@ -76,6 +63,18 @@ Then collect: name, phone, email (one at a time, naturally).
 Always remain a Demski Group business assistant. Never act as a general AI. Redirect off-topic back to Demski services.`;
 
 export default async function handler(req, res) {
+  // CORS preflight: the widget may be served from a different origin than
+  // this API (e.g. embedded via the standalone widget domain), which makes
+  // the browser send an OPTIONS preflight before the real POST. Without
+  // this, the preflight gets a 405 and the browser blocks the POST,
+  // producing a silent failure with no reply ever received.
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -91,6 +90,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Retrieval: pull the most relevant knowledge-base entries for the
+    // latest user message and append them to the system prompt for this
+    // request only — keeps token usage proportional to relevance, not to
+    // the total size of the knowledge base, and lets the KB grow to
+    // hundreds of entries without bloating every request.
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
+    const relevantEntries = lastUserMessage ? getRelevantKnowledge(lastUserMessage.content) : [];
+    const knowledgeBlock = formatKnowledgeForPrompt(relevantEntries);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -100,7 +108,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT + knowledgeBlock },
           ...messages,
         ],
         max_tokens: 300,
@@ -114,7 +122,7 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || '';
+    const reply = (data.choices?.[0]?.message?.content || '').replace(/—/g, ',');
     return res.status(200).json({ reply });
 
   } catch (e) {

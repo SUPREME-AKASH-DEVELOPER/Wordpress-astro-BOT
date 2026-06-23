@@ -1,0 +1,26 @@
+[
+  {
+    "id": "design-process",
+    "title": "Design Process",
+    "keywords": ["design process", "wireframe", "ux process", "ui process", "prototype", "user flow"],
+    "summary": "Design starts with mapping user flow diagrams to understand users and goals, then translating flows into low-fidelity wireframes focused on layout and core functionality. Designs are iterated collaboratively with client feedback, ending in a dev-ready prototype."
+  },
+  {
+    "id": "agile-delivery",
+    "title": "Agile Delivery",
+    "keywords": ["agile", "scrum", "sprint", "project management", "how do you work", "methodology"],
+    "summary": "Projects are broken into 2-week sprints with clear deliverables for consistent progress. Clients are involved in planning, feedback, and reviews. Agile allows rapid iteration on shifting priorities, with transparency through regular stand-ups, sprint demos, and real-time reporting."
+  },
+  {
+    "id": "devops",
+    "title": "DevOps & Infrastructure",
+    "keywords": ["devops", "ci/cd", "deployment", "cloud", "infrastructure", "hosting", "security", "scalability"],
+    "summary": "Automated CI/CD pipelines build, test, and deploy code automatically to reduce manual errors and speed up delivery. Cloud environments are designed to scale from a startup app to an enterprise platform, with continuous monitoring and a security-first approach."
+  },
+  {
+    "id": "pricing-approach",
+    "title": "Pricing & Cost Estimates",
+    "keywords": ["price", "pricing", "cost", "how much", "budget", "quote", "estimate", "calculator", "fees"],
+    "summary": "A free software cost calculator lets prospects answer a few questions about features, complexity, and timeline, then get a transparent cost estimate based on real industry data within 24 hours, followed by a call to refine it. No hidden fees, no obligation to move forward. The estimate is a reliable starting range; final pricing depends on project complexity and specific requirements. Do not invent a specific dollar figure when asked for pricing, describe this process and offer to connect the user with the team or the cost calculator."
+  }
+]

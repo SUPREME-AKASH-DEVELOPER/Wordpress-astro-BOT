@@ -1282,10 +1282,10 @@
       var noFollowUpDiv = document.getElementById('cb-no-followup');
       if (noFollowUpDiv) {
         var nfKw = {
-          'Managing data': /data|report|analytic|spreadsheet|tracking/,
-          'Customer interactions': /customer|client|support|service/,
-          'Team coordination': /team|staff|employee|coordinat|communication/,
-          'Nothing really': /nothing|none|not really|n\/a/
+          'Managing data': /managing data|messy data|disorganized data|spreadsheet|data tracking/,
+          'Customer interactions': /customer (interactions|service|support)|client (interactions|communication)/,
+          'Team coordination': /team coordination|staff coordination|team communication|coordinating (my|our) team/,
+          'Nothing really': /^nothing really$|^nothing$|^none$|not really|^n\/a$/
         };
         var nfMatch = localKeywordMatch(val, NO_FOLLOWUP_OPTS, nfKw);
         if (nfMatch) { noFollowUpDiv.remove(); selectNoFollowUp(nfMatch); return; }
@@ -1337,22 +1337,22 @@
         var el = document.getElementById('cb-intent'); if (el) el.remove();
         var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
         var intentDetailKw = {
-          'Mobile App': /mobile|ios|android|app\b/,
+          'Mobile App': /mobile app|ios app|android app|build.{0,10}\bapp\b/,
           'Web App': /web app|website app|web-based/,
-          'SaaS Platform': /saas|subscription|platform/,
-          'eCommerce': /ecommerce|e-commerce|shop|store|sell online/,
-          'Automate Workflows': /automat|workflow/,
-          'Customer Management': /crm|customer management|client management/,
-          'Reporting & Analytics': /report|analytic|dashboard/,
-          'Employee Tools': /employee|staff|hr tool/,
-          'Increase Website Traffic': /traffic/,
-          'Generate More Leads': /lead/,
-          'Social Media Growth': /social media|social growth/,
-          'Paid Advertising': /ads|advertis|ppc/,
-          'Planning a Future Project': /planning|future/,
-          'Comparing Vendors': /compar|vendor|shopping around/,
-          'Learning About Tech': /learn|research/,
-          'Just Curious': /curious|just looking/
+          'SaaS Platform': /saas|subscription platform|subscription product/,
+          'eCommerce': /ecommerce|e-commerce|online store|online shop|sell online|sell products online/,
+          'Automate Workflows': /automat(e|ing|ion).{0,15}workflow|workflow automat/,
+          'Customer Management': /\bcrm\b|customer management|client management/,
+          'Reporting & Analytics': /reporting tool|analytics dashboard|data dashboard/,
+          'Employee Tools': /employee tool|staff tool|hr tool/,
+          'Increase Website Traffic': /increase.{0,10}traffic|more (website )?traffic|drive traffic/,
+          'Generate More Leads': /generate.{0,15}lead|more leads|lead generation/,
+          'Social Media Growth': /social media (growth|marketing)|grow.{0,10}social media/,
+          'Paid Advertising': /paid ads|paid advertising|ppc campaign|run ads/,
+          'Planning a Future Project': /planning a (future )?project|future project/,
+          'Comparing Vendors': /comparing vendors|shopping around|comparing (developers|companies|agencies)/,
+          'Learning About Tech': /learning about (tech|technology)|just researching/,
+          'Just Curious': /just curious|just looking around/
         };
         var localMatch1 = localKeywordMatch(val, intentDetailOpts, intentDetailKw);
         if (localMatch1) { lead.intent_detail = localMatch1; step = 2; showTimelineStep(); return; }
@@ -1374,7 +1374,7 @@
           '1-3 months': /1-3|1 to 3|one to three|next (month|quarter)|few months/,
           '3-6 months': /3-6|3 to 6|three to six/,
           '6+ months': /6\+|6 months|six months|later this year|next year/,
-          'Not sure yet': /not sure|no idea|don't know|undecided|flexible/
+          'Not sure yet': /not sure yet|no idea yet|don't know yet|still undecided|flexible (on|with) (timing|timeline|budget)/
         };
         var localMatch2 = localKeywordMatch(val, timelineOpts, timelineKw);
         if (localMatch2) { lead.timeline = localMatch2; showBudgetStep(); return; }
@@ -1396,7 +1396,7 @@
           '$10k - $25k': /10.?(k|000).{0,5}25|between 10 and 25/,
           '$25k - $50k': /25.?(k|000).{0,5}50|between 25 and 50/,
           '$50k+': /50.?(k|000)\+|over.?50|more than.?50|above.?50/,
-          'Not sure yet': /not sure|no idea|don't know|undecided|flexible/
+          'Not sure yet': /not sure yet|no idea yet|don't know yet|still undecided|flexible (on|with) (timing|timeline|budget)/
         };
         var localMatch3 = localKeywordMatch(val, budgetOpts, budgetKw);
         if (localMatch3) { lead.budget = localMatch3; showNotesStep(); return; }

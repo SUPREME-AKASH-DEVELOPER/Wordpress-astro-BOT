@@ -1,0 +1,233 @@
+[
+  {
+    "id": "biopac",
+    "title": "Biopac Systems",
+    "industries": ["Scientific Research", "Data Analytics"],
+    "techStack": ["PHP", "MySQL", "JavaScript", "AWS"],
+    "keywords": ["research", "scientific", "data tracking", "education", "lab", "study", "workflow"],
+    "summary": "Replaced manual research workflows with a custom web app letting researchers and educators run studies, capture data, and review results from one platform.",
+    "quote": "We spoke to a few different companies as we set out to find someone to create a website/database application to augment our desktop software. We chose The Demski Group in part because we found them very easy to talk to in our interview. That first impression stuck as we have a great relationship with them now.",
+    "quoteAuthor": "Mickey Rowe, Manager",
+    "results": ["Researchers now perform and track studies online, cutting time spent on manual data handling.", "Ongoing partnership, Biopac continues to work with The Demski Group on new projects without considering other vendors."]
+  },
+  {
+    "id": "shop-orthopedics",
+    "title": "ShopOrthopedics",
+    "industries": ["E-commerce", "Healthcare"],
+    "techStack": ["Shopify", "Liquid", "JavaScript", "CSS"],
+    "keywords": ["shopify", "ecommerce", "online store", "conversion", "ROI", "ROAS", "ads"],
+    "summary": "Optimized a Shopify storefront for an orthopedic brace/support retailer, improving product categorization, search, and overall shopping experience.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["243.75% ROI", "3.43 ROAS", "Higher return on ad spend and stronger online sales from a smoother shopping experience."]
+  },
+  {
+    "id": "property-gauge",
+    "title": "Property Gauge",
+    "industries": ["PropTech"],
+    "techStack": ["React", "Node.js", "PostgreSQL"],
+    "keywords": ["property", "real estate", "proptech", "automation", "dashboard", "analysis tool"],
+    "summary": "Built custom software automating property analysis tasks, replacing manual spreadsheet workflows and centralizing property data.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["The team can analyze properties in a fraction of the time previously required.", "Automation removed repetitive manual tasks from the workflow."]
+  },
+  {
+    "id": "pnc-bank",
+    "title": "PNC Bank",
+    "industries": ["Financial Services"],
+    "techStack": [".NET", "SQL Server", "Azure"],
+    "keywords": ["bank", "fintech", "finance", "enterprise", "security", "compliance"],
+    "summary": "Provided custom development and consulting for a major financial services brand, meeting the rigorous reliability and security standards required for systems handling sensitive financial data.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["Deliverables completed on schedule and met the required quality bar for financial-industry reliability."]
+  },
+  {
+    "id": "mister-quik",
+    "title": "Mister Quik Home Services",
+    "industries": ["Home Services"],
+    "techStack": ["WordPress", "PHP", "JavaScript", "SEO"],
+    "keywords": ["home services", "website", "wordpress", "deadlines"],
+    "summary": "Multiple large website development projects delivered under tight deadlines, with honest, transparent communication throughout.",
+    "quote": "Even with tight deadlines, they always deliver great work without cutting corners. What we really appreciate is how honest and transparent they are. They don't make promises they can't keep or set unrealistic expectations, which makes working with them stress-free.",
+    "quoteAuthor": "Luke Reks, Marketing Manager",
+    "results": ["Multiple successful website projects strengthened Mister Quik's presence in Home Services.", "Mister Quik continues to rely on The Demski Group as a trusted, ongoing partner."]
+  },
+  {
+    "id": "jackson-hewitt",
+    "title": "Jackson Hewitt",
+    "industries": ["Financial Services"],
+    "techStack": ["PHP", "MySQL", "JavaScript"],
+    "keywords": ["tax", "finance", "seasonal scale", "high demand"],
+    "summary": "Custom software development supporting digital operations through high-demand tax-season periods, on time and within budget.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["Digital systems supported the business reliably through busy periods."]
+  },
+  {
+    "id": "seen-dating",
+    "title": "SEEN Dating",
+    "industries": ["Mobile Apps", "Social"],
+    "techStack": ["React Native", "Node.js", "Firebase"],
+    "keywords": ["dating app", "mobile app", "social", "engagement", "retention", "startup"],
+    "summary": "Ongoing app evolution for a dating startup, focused on increasing user engagement and retention as needs change.",
+    "quote": "I really appreciate The Demski Group's willingness to shift quickly on projects and deadlines. The Demski Group continues to evolve the app to increase user engagement and retention. The team is available on multiple communication channels, which allows them to weigh in on various aspects of the product.",
+    "quoteAuthor": "Evans Craddock, Production Coordinator",
+    "results": ["Ongoing improvements have grown user engagement over time.", "Continued evolution of the app has supported stronger retention."]
+  },
+  {
+    "id": "willo",
+    "title": "Willo",
+    "industries": ["HR Tech"],
+    "techStack": ["React", "Node.js", "AWS"],
+    "keywords": ["hr tech", "video interviewing", "saas", "platform support"],
+    "summary": "Ongoing development support for a video interviewing platform, helping the team ship improvements reliably and efficiently.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["Platform improvements continue to ship through consistent, dependable releases."]
+  },
+  {
+    "id": "robomaster",
+    "title": "Robomaster",
+    "industries": ["Technology"],
+    "techStack": ["JavaScript", "Node.js", "AWS"],
+    "keywords": ["custom software", "technical support"],
+    "summary": "Custom software development plus ongoing technical support tailored to the client's product requirements.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["Reliable, well-built software backing the client's product."]
+  },
+  {
+    "id": "zoomifi",
+    "title": "Zoomifi",
+    "industries": ["Mobile Apps", "Point of Sale"],
+    "techStack": ["React Native", "Node.js", "iOS", "Android"],
+    "keywords": ["pos", "point of sale", "payments", "merchant", "transactions", "mobile app"],
+    "summary": "Multi-platform POS applications across iOS, Android, and other platforms, built to handle high transaction volume with merchant flexibility and scalability.",
+    "quote": "After working with many development firms, I now funnel all my development to The Demski Group. The Demski Group has become our main app developer thanks to their consistency, quality of work, and high level of communication. They deliver apps with minimal bugs, remain open to feedback, and can take an app from idea to execution with next to no management on our part.",
+    "quoteAuthor": "Slava Moshkovich, President",
+    "results": ["The POS applications have handled millions of transactions reliably.", "Thousands of merchants have adopted the apps.", "Flexibility and functionality enabled merchants to streamline operations and increase customer satisfaction."]
+  },
+  {
+    "id": "yawye",
+    "title": "Yawye",
+    "industries": ["Technology"],
+    "techStack": ["JavaScript", "React", "Node.js"],
+    "keywords": ["consistency", "accountability", "long-term partner"],
+    "summary": "Consistent, accountable development with high standards held on every engagement.",
+    "quote": "We are true believers in this team and will no doubt provide ongoing business. The Demski Group consistently produces quality work, leading our team to be true believers of their work. Their team is accountable, setting high standards for their work and delivering results.",
+    "quoteAuthor": "Danny Socolof, CEO",
+    "results": ["Consistent quality earned The Demski Group continued, ongoing business."]
+  },
+  {
+    "id": "tausi-brands",
+    "title": "Tausi Brands",
+    "industries": ["E-commerce"],
+    "techStack": ["WordPress", "WooCommerce", "SEO"],
+    "keywords": ["website", "branding", "design"],
+    "summary": "A professional, high-visibility website resonating with customers across multiple industries.",
+    "quote": "The Demski Group was professional and outstanding at their work. The Demski Group delivered a professional website that received positive feedback from users across many industries. They communicated effectively via Zoom and were always accessible.",
+    "quoteAuthor": "Janice Shokrian, Founder & CEO",
+    "results": ["Positive user feedback received across many industries."]
+  },
+  {
+    "id": "corning",
+    "title": "Corning",
+    "industries": ["Manufacturing"],
+    "techStack": ["WordPress", "PHP", "JavaScript"],
+    "keywords": ["manufacturing", "flexible timeline", "scheduling"],
+    "summary": "Stayed flexible as project timelines changed, keeping the work on track.",
+    "quote": "The Demski Group team were great in helping out with our project and flexible with some of our changing timelines!",
+    "quoteAuthor": "",
+    "results": ["Project completed successfully despite changing timelines."]
+  },
+  {
+    "id": "flower-moxie",
+    "title": "FlowerMoxie",
+    "industries": ["E-commerce"],
+    "techStack": ["Shopify", "Liquid", "JavaScript"],
+    "keywords": ["shopify", "ecommerce", "fair pricing", "estimates"],
+    "summary": "Fair scoping and quoting on ongoing Shopify development projects, work staying within estimated hours.",
+    "quote": "The Demski Group was an absolute pleasure to work with and I will continue to hire them for my other Shopify dev projects. They scoped and quoted the project fairly, stayed within the hours they estimated, was extremely prompt in completing the tasks, extremely communicative, and quick to hop on a call. HIGHLY RECOMMEND, they're a wonderful hire!",
+    "quoteAuthor": "Amy McCord, Founder",
+    "results": ["FlowerMoxie continues to hire The Demski Group for additional Shopify projects.", "Ongoing improvements have increased engagement and retention."]
+  },
+  {
+    "id": "golf-daddy",
+    "title": "Golf Daddy",
+    "industries": ["E-commerce"],
+    "techStack": ["Shopify", "JavaScript", "CSS"],
+    "keywords": ["shopify", "ecommerce", "launch", "website"],
+    "summary": "Launched the website on schedule with regular weekly update meetings.",
+    "quote": "They delivered what they said they would, and it worked as planned. As a result of the collaboration, The Demski Group successfully launched the website, and the revenue started generating. The team regularly held weekly meetings, keeping the client updated on all tasks, plans, and feedback.",
+    "quoteAuthor": "Chris Thompson, Managing Partner",
+    "results": ["The new website launched successfully and began generating revenue."]
+  },
+  {
+    "id": "audiojack",
+    "title": "AudioJack",
+    "industries": ["Technology"],
+    "techStack": ["JavaScript", "React", "Node.js"],
+    "keywords": ["communication", "adaptability", "growth"],
+    "summary": "Ongoing partnership defined by regular communication and adapting quickly as project needs change.",
+    "quote": "Fantastic experience working with this team. They communicate regularly, understand that things can change and adapt as we sorted through the issues that came up with the project. Will work with them again as we continue to grow.",
+    "quoteAuthor": "David Tobin, Founder",
+    "results": ["AudioJack plans to continue working with The Demski Group as the company grows."]
+  },
+  {
+    "id": "impact-team-tennis",
+    "title": "Impact Team Tennis",
+    "industries": ["Sports & Recreation"],
+    "techStack": ["WordPress", "PHP", "JavaScript"],
+    "keywords": ["bug fixes", "platform rescue", "usability"],
+    "summary": "Inherited a complex platform with bugs and usability issues and fixed it without disrupting operations.",
+    "quote": "The Demski Group is great to work with! They inherited a mess with our platform and have been able to fix the bugs and make the platform more user friendly. They are also very professional and timely as well as a pleasure to work with! We have worked with Andrew Demski for all of our IT needs.",
+    "quoteAuthor": "Delaine Mast, CEO",
+    "results": ["Bug fixes improved overall platform stability.", "The platform is now more user-friendly."]
+  },
+  {
+    "id": "bite",
+    "title": "Bite",
+    "industries": ["Technology"],
+    "techStack": ["JavaScript", "React", "Node.js"],
+    "keywords": ["product development", "collaboration"],
+    "summary": "Custom development support to help build and refine the product as the company grows.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["Bite's product continues to be refined with ongoing development support."]
+  },
+  {
+    "id": "hewlett-packard-enterprise",
+    "title": "Hewlett Packard Enterprise",
+    "industries": ["Enterprise Technology"],
+    "techStack": [".NET", "Java", "Azure", "AWS"],
+    "keywords": ["enterprise", "consulting", "global", "standards"],
+    "summary": "Enterprise-grade software development and consulting meeting the rigorous standards expected of a global technology leader.",
+    "quote": "",
+    "quoteAuthor": "",
+    "results": ["Delivered work that met the rigorous standards expected by a global technology leader."]
+  },
+  {
+    "id": "farmers-daughter-fibers",
+    "title": "Farmer's Daughter Fibers",
+    "industries": ["E-commerce"],
+    "techStack": ["WordPress", "WooCommerce", "SEO", "PPC"],
+    "keywords": ["seo", "ppc", "ecommerce", "online visibility", "marketing"],
+    "summary": "Website updates and custom tools improving customer experience, paired with SEO and PPC work to grow visibility and sales.",
+    "quote": "The Demski Group has done an outstanding job updating our website and implementing custom tools that have greatly improved our customer experience. Their expertise in SEO and PPC has also significantly increased our online visibility and sales.",
+    "quoteAuthor": "Candice English, Owner",
+    "results": ["SEO and PPC work significantly increased online visibility.", "Online sales grew alongside improved visibility and customer experience."]
+  },
+  {
+    "id": "nu-borders",
+    "title": "Nu Borders",
+    "industries": ["Technology", "Consulting"],
+    "techStack": ["React", "Node.js", "AWS"],
+    "keywords": ["website redesign", "react", "responsive design"],
+    "summary": "Modernized React JS website with a sleek, fully responsive design and improved navigation/performance.",
+    "quote": "We had a fantastic experience working with The Demski Group. They communicated regularly, understood that things can change and adapted as we sorted through the issues that came up with the project. The site was completed on time and we look forward to working with them again.",
+    "quoteAuthor": "David Smith, Budapest Founder",
+    "results": ["Updated website provided a more engaging, user-friendly experience.", "Improved online presence helped attract new clients."]
+  }
+]

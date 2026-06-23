@@ -1,0 +1,32 @@
+[
+  {
+    "id": "company-facts",
+    "title": "Company Facts",
+    "keywords": ["where are you located", "headquarters", "office", "how long", "experience", "how many projects", "phone", "email", "contact", "who are you", "about you", "about the company"],
+    "summary": "The Demski Group is a US-based custom software development firm with 12+ years of experience and 600+ successful projects. Headquartered in Olean, NY, with offices in Cincinnati, OH and Kalispell, MT. Phone: 406-936-3049. Email: contact@demskigroup.com."
+  },
+  {
+    "id": "team-leadership",
+    "title": "Team & Leadership",
+    "keywords": ["who founded", "founder", "team", "leadership", "owner", "andrew demski", "aaron demski", "richard armstrong"],
+    "summary": "Leadership/team includes Andrew Demski, Aaron Demski, and Richard Armstrong."
+  },
+  {
+    "id": "awards-recognition",
+    "title": "Awards & Recognition",
+    "keywords": ["awards", "recognition", "reviews", "reputation", "clutch", "ratings", "best developers"],
+    "summary": "Recognized as Clutch Top Software Developers 2024, Clutch Top App Development Company 2023, Clutch Top Software 2022, named among Best Software Developers US 2024, and holds a 5/5 average Google review rating."
+  },
+  {
+    "id": "mission",
+    "title": "Mission Statement",
+    "keywords": ["mission", "values", "philosophy", "what do you believe", "why choose"],
+    "summary": "At The Demski Group, our mission is to empower businesses through innovative, reliable, and user-centric software solutions. We are dedicated to transforming ideas into impactful digital experiences by leveraging cutting-edge technology and fostering a culture of collaboration, creativity, and continuous improvement. Our commitment is to deliver exceptional value, exceed client expectations, and drive success through excellence in software development."
+  },
+  {
+    "id": "demski-difference",
+    "title": "What Sets Demski Apart",
+    "keywords": ["why choose demski", "what makes you different", "differentiator", "response time", "support", "ownership", "vendors"],
+    "summary": "End-to-end ownership of the entire development lifecycle (project management, QA, DevOps, ongoing maintenance) so clients don't have to juggle multiple vendors. Responds to all client messages in 1 hour or less. Full-stack expertise paired with a proven QA process so software performs under pressure and evolves with the business."
+  }
+]
