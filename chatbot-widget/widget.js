@@ -85,6 +85,13 @@
 
   /* ── STATE ── */
   var step = 0;
+  /* Tracks an in-progress post-lead contact correction (step 8 only) — null
+   * when no correction is active, otherwise 'name' | 'phone' | 'email'
+   * naming the field the next typed message should be saved into. Lets the
+   * widget recognize "I forgot to enter my actual email" as a structural
+   * data-correction request rather than feeding it to the AI as ordinary
+   * conversation, which would otherwise ignore it or restart qualification. */
+  var correctingField = null;
   var expanded = false;
   /* True from the moment the user takes any real conversational action
    * (MCQ pick, typed message, idle-reply click) — independent of `expanded`,
@@ -652,6 +659,48 @@
     function isOffTopic(v) {
       var offTopicKw = ['price', 'pricing', 'cost', 'how much', 'what do you', 'who are you', 'services', 'what is', 'can you', 'help', 'support', 'contact', 'discount', 'trial'];
       return offTopicKw.some(function (k) { return v.toLowerCase().indexOf(k) > -1; });
+    }
+
+    /* Rejects refusal phrases, sentences, and phone/email-shaped values
+     * from being stored as the lead's name — without this, "I won't tell
+     * my name" gets accepted verbatim and the bot replies "Nice to meet
+     * you, i won't tell my name!", producing garbage CRM data. Mirrors the
+     * deterministic-keyword-check pattern used by isOffTopic/
+     * detectContactCorrection rather than an AI call, since this is a
+     * structural validation rule, not something that needs interpretation. */
+    function isValidName(v) {
+      var trimmed = v.trim();
+      var lower = trimmed.toLowerCase();
+      var refusalKw = ["won't tell", 'wont tell', "don't want to share", 'dont want to share', 'prefer not to say', 'not comfortable sharing', 'not comfortable', "rather not say", 'rather not', 'no thanks', 'not telling'];
+      if (refusalKw.some(function (k) { return lower.indexOf(k) > -1; })) return false;
+      if (/^(no|skip|nope|nah)$/.test(lower)) return false;
+      /* Phone numbers and email addresses typed into the name field. */
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return false;
+      if (/^\d+$/.test(trimmed.replace(/[\s\-().]/g, ''))) return false;
+      /* A real name is essentially never more than a few words — anything
+       * longer is almost certainly a sentence (a refusal, a question, an
+       * aside), not someone stating their name. */
+      var wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+      if (wordCount > 4) return false;
+      if (trimmed.length < 2) return false;
+      return true;
+    }
+
+    /* Local, deterministic keyword check (same pattern as isOffTopic above)
+     * for "the user wants to fix a contact detail they already gave us" —
+     * deliberately not an AI call, since this is a structural data-edit
+     * operation on the lead object, not conversational content the model
+     * needs to interpret. Matches phrasing like "I forgot to enter my
+     * actual email", "wrong phone number", "update my contact details". */
+    function detectContactCorrection(v) {
+      var lower = v.toLowerCase();
+      var correctionKw = ['wrong', 'incorrect', 'mistake', 'typo', 'forgot to enter', 'forgot my real', 'forgot my actual', 'not my real', "didn't enter", 'did not enter', 'update my', 'change my', 'correct my', 'fix my', 'edit my'];
+      var hasCorrectionIntent = correctionKw.some(function (k) { return lower.indexOf(k) > -1; });
+      if (!hasCorrectionIntent) return null;
+      if (/email/.test(lower)) return 'email';
+      if (/phone|number/.test(lower)) return 'phone';
+      if (/name/.test(lower)) return 'name';
+      return ''; /* correction intent detected, but no field named yet — ask which one */
     }
 
 
@@ -1575,7 +1624,10 @@
         return;
       }
       if (step === 5) {
-        if (val.length < 2 || /^\d+$/.test(val)) { botReply('Could you enter your full name please?'); return; }
+        if (!isValidName(val)) {
+          botReply("That's completely fine. We usually ask for a name so our team knows who they're speaking with. If you'd prefer not to share it, you can provide a first name, nickname, or business name instead.");
+          return; /* stays on step 5 — never advances to phone on an invalid/refused name */
+        }
         lead.name = val; step = 6;
         botReply('Nice to meet you, ' + val + '! What\'s the best phone number to reach you?'); return;
       }
@@ -1588,6 +1640,72 @@
       if (step === 7) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { botReply("That doesn't look right. Could you double-check your email address?"); return; }
         lead.email = val; showFinalCTA(); return;
+      }
+
+      /* Step 8: lead already fully captured, CTA buttons are showing. The
+       * user can still type here (the input bar is never hidden), so a
+       * message like "I forgot to enter my actual email" must be handled
+       * as a correction to the data already on file, not fed into normal
+       * qualification/AI chat — there's no qualification question left to
+       * answer, and restarting one would be exactly the bug this fixes.
+       * submitLead() itself isn't re-called here: it only ever fires once
+       * the user clicks a CTA button (handleCTA), and the input is
+       * disabled the instant that happens, so any correction necessarily
+       * happens before that real submission and is picked up by it. */
+      if (step === 8) {
+        if (correctingField && correctingField !== 'pending-field-name') {
+          var field = correctingField;
+          if (field === 'email') {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { botReply("That doesn't look right. Could you double-check your email address?"); return; }
+            lead.email = val;
+          } else if (field === 'phone') {
+            var correctedDigits = val.replace(/\D/g, '');
+            if (correctedDigits.length < 7) { botReply("That doesn't look like a valid phone number. Could you double-check?"); return; }
+            lead.phone = val;
+          } else if (field === 'name') {
+            if (!isValidName(val)) { botReply("That's completely fine. We usually ask for a name so our team knows who they're speaking with. If you'd prefer not to share it, you can provide a first name, nickname, or business name instead."); return; }
+            lead.name = val;
+          }
+          correctingField = null;
+          var fieldLabel = field === 'email' ? 'email' : field === 'phone' ? 'phone number' : 'name';
+          botReply("Perfect, I've updated your " + fieldLabel + " to " + val + ". Our team will use that going forward.");
+          return;
+        }
+
+        var correctionTarget = detectContactCorrection(val);
+        if (correctionTarget !== null) {
+          if (correctionTarget === '') {
+            /* Correction intent detected but no field named — ask which one,
+             * and remember we're now waiting on that answer specifically
+             * (not a free-text field name, an explicit follow-up choice). */
+            correctingField = 'pending-field-name';
+            botReply('No problem! Which detail would you like to update: your name, phone number, or email?');
+            return;
+          }
+          correctingField = correctionTarget;
+          var askLabel = correctionTarget === 'email' ? 'email address' : correctionTarget === 'phone' ? 'phone number' : 'name';
+          botReply('No problem. What\'s the correct ' + askLabel + " you'd like us to use?");
+          return;
+        }
+
+        /* Already mid-correction-flow waiting on which field, and the
+         * model-free keyword check above didn't catch a direct field
+         * mention (e.g. user just replied "email") - check once more on
+         * its own here so "Which detail..." -> "email" works naturally. */
+        if (correctingField === 'pending-field-name') {
+          var lowerVal = val.toLowerCase();
+          if (/email/.test(lowerVal)) { correctingField = 'email'; botReply("Got it. What's the correct email address you'd like us to use?"); return; }
+          if (/phone|number/.test(lowerVal)) { correctingField = 'phone'; botReply("Got it. What's the correct phone number you'd like us to use?"); return; }
+          if (/name/.test(lowerVal)) { correctingField = 'name'; botReply("Got it. What's the correct name you'd like us to use?"); return; }
+          botReply('Just to confirm, would you like to update your name, phone number, or email?');
+          return;
+        }
+
+        /* No correction intent recognized — stay in the post-lead state
+         * with a natural acknowledgment rather than restarting
+         * qualification, showing MCQs, or asking new business questions. */
+        botReply("Thanks for the message! If you'd like to update your name, phone, or email, just let me know. Otherwise, feel free to book a call or have us follow up by email using the buttons above.");
+        return;
       }
     }
 
