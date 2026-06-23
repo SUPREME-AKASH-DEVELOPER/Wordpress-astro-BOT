@@ -79,6 +79,7 @@
   var bubbleTimer = null;
   var badgeTimer = null;
   var teaserFlowDone = false;
+  var gcTeardownActivityListeners = null;
   var idleTimer = null;
   var idleInterval = 60000;
   var awaitingIdleResponse = false;
@@ -501,36 +502,48 @@
      * duplicate. Reads the DOM directly so it also catches bubbles built
      * by other code paths (like the idle reminder), not just addBotMsg. */
     /* Bot message text (AI replies, knowledge-base content, hardcoded
-     * strings) is never trusted as markup — escape it to text first, then
-     * reintroduce ONLY line breaks. This is the single chokepoint every bot
-     * message passes through, so a payload like <script>/<img onerror>
-     * coming back from the model (e.g. echoed/quoted user input) is
-     * rendered as inert text instead of executing. */
-    function escapeHtml(text) {
-      var d = document.createElement('div');
-      d.textContent = text == null ? '' : String(text);
-      return d.innerHTML;
-    }
-    function safeBotHtml(text) {
-      return escapeHtml(text).replace(/\n/g, '<br>');
+     * strings) is NEVER passed through innerHTML or any other HTML-parsing
+     * API. buildBotMsgBubble below builds the message bubble entirely with
+     * DOM APIs (createElement/createTextNode), splitting only on '\n' to
+     * insert real <br> elements between text nodes. A payload like
+     * <script>, <img onerror=...>, <svg onload=...>, or <iframe src=
+     * "javascript:..."> coming back from the model (e.g. echoed/quoted
+     * user input) is therefore inserted as literal, inert text — it is
+     * never parsed as markup in the first place, so there's no escaping
+     * step to forget or get wrong. */
+    function buildBotMsgBubble(text) {
+      var bubble = document.createElement('div');
+      bubble.className = 'cb-bot-msg';
+      bubble.setAttribute('style', BOT_STYLE);
+      var lines = String(text == null ? '' : text).split('\n');
+      lines.forEach(function (line, i) {
+        if (i > 0) bubble.appendChild(document.createElement('br'));
+        if (line) bubble.appendChild(document.createTextNode(line));
+      });
+      return bubble;
     }
 
-    function dedupeLastBotMsg(safeHtml) {
+    function dedupeLastBotMsg(text) {
       var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
       var last = wraps[wraps.length - 1];
       var lastBubble = last && last.querySelector('.cb-bot-msg');
-      if (lastBubble && lastBubble.innerHTML === safeHtml) last.remove();
+      if (lastBubble && lastBubble.textContent === String(text == null ? '' : text)) last.remove();
     }
 
     var isReplayingSession = false;
 
     function addBotMsg(text) {
-      var safeHtml = safeBotHtml(text);
-      dedupeLastBotMsg(safeHtml);
+      dedupeLastBotMsg(text);
       var w = document.createElement('div');
       w.className = 'cb-bot-msg-wrap';
       w.setAttribute('style', WRAP_STYLE);
-      w.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + safeHtml + '</div>';
+      var av = document.createElement('img');
+      av.src = AVATAR_URL;
+      av.alt = '';
+      av.setAttribute('style', AV_STYLE);
+      av.onerror = function () { av.onerror = null; av.src = AVATAR_FB; };
+      w.appendChild(av);
+      w.appendChild(buildBotMsgBubble(text));
       msgs.appendChild(w); scroll();
       if (!isReplayingSession) { transcript.push({ role: 'bot', html: text }); saveSession(); }
     }
@@ -730,12 +743,18 @@
       }
 
       removeIdleReminder();
-      dedupeLastBotMsg(safeBotHtml(idleMsg));
+      dedupeLastBotMsg(idleMsg);
       var wrap = document.createElement('div');
       wrap.id = IDLE_MSG_ID;
       wrap.className = 'cb-bot-msg-wrap';
       wrap.setAttribute('style', WRAP_STYLE);
-      wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + safeBotHtml(idleMsg) + '</div>';
+      var idleAv = document.createElement('img');
+      idleAv.src = AVATAR_URL;
+      idleAv.alt = '';
+      idleAv.setAttribute('style', AV_STYLE);
+      idleAv.onerror = function () { idleAv.onerror = null; idleAv.src = AVATAR_FB; };
+      wrap.appendChild(idleAv);
+      wrap.appendChild(buildBotMsgBubble(idleMsg));
       msgs.appendChild(wrap); scroll();
       awaitingIdleResponse = false;
       /* One-time only — no follow-up timer is scheduled after this. */
@@ -784,14 +803,58 @@
       document.getElementById('cb-gc-yes').onclick   = function () { openFromTeaser('Yes'); };
       document.getElementById('cb-gc-no').onclick    = function () { openFromTeaser('No'); };
       document.getElementById('cb-gc-send').onclick  = sendFromGreetingCard;
-      document.getElementById('cb-gc-input-el').onkeydown = function (e) {
+      var gcInputEl = document.getElementById('cb-gc-input-el');
+      gcInputEl.onkeydown = function (e) {
         if (e.key === 'Enter') sendFromGreetingCard();
       };
+
+      /* While the user is focused on/typing in the greeting card's input,
+       * the auto-collapse-to-bubble timer must never fire — collapsing the
+       * card out from under someone mid-keystroke is the exact bug this
+       * fixes. gcInputFocused suspends the timer entirely on focus, and
+       * every keyboard/paste/input event (covering normal typing, IME/
+       * autocomplete, mobile keyboards, and voice-typed input alike, since
+       * all of those ultimately fire an 'input' event) restarts it fresh
+       * on blur. Mouse movement, scrolling, and touch ANYWHERE on the page
+       * — not just on the card itself — also count as activity, so a user
+       * reading the page (scrolling, moving their mouse) without literally
+       * touching the card doesn't get it yanked away from under them
+       * either. Listeners are document-level and explicitly torn down in
+       * dismissGreetingCard so they don't pile up across repeated
+       * show/dismiss cycles (teaser → reopen → teaser, etc). */
+      var gcInputFocused = false;
+      function restartCardTimer() {
+        if (cardTimer) { clearTimeout(cardTimer); cardTimer = null; }
+        if (gcInputFocused) return; /* timer stays suspended until blur */
+        cardTimer = setTimeout(function () {
+          dismissGreetingCard();
+          showGreetingBubble();
+        }, 60000);
+      }
+      gcInputEl.addEventListener('focus', function () {
+        gcInputFocused = true;
+        if (cardTimer) { clearTimeout(cardTimer); cardTimer = null; }
+      });
+      gcInputEl.addEventListener('blur', function () {
+        gcInputFocused = false;
+        restartCardTimer();
+      });
+      ['keydown', 'keyup', 'input', 'paste'].forEach(function (evt) {
+        gcInputEl.addEventListener(evt, restartCardTimer);
+      });
+      var gcActivityEvents = ['mousemove', 'scroll', 'touchstart', 'touchmove'];
+      gcActivityEvents.forEach(function (evt) {
+        document.addEventListener(evt, restartCardTimer, { passive: true });
+      });
+      gcTeardownActivityListeners = function () {
+        gcActivityEvents.forEach(function (evt) {
+          document.removeEventListener(evt, restartCardTimer, { passive: true });
+        });
+        gcTeardownActivityListeners = null;
+      };
+
       /* No interaction on the card → hide it and move to the small teaser bubble. */
-      cardTimer = setTimeout(function () {
-        dismissGreetingCard();
-        showGreetingBubble();
-      }, 10000);
+      restartCardTimer();
     }
 
     function sendFromGreetingCard() {
@@ -803,6 +866,7 @@
 
     function dismissGreetingCard() {
       if (cardTimer) { clearTimeout(cardTimer); cardTimer = null; }
+      if (gcTeardownActivityListeners) gcTeardownActivityListeners();
       var c = document.getElementById('cb-greeting-card'); if (!c) return;
       c.classList.remove('cb-gv'); c.classList.add('cb-gh');
       setTimeout(function () { if (c.parentNode) c.remove(); }, 400);
