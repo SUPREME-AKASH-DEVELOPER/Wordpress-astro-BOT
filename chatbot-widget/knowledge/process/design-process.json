@@ -1,0 +1,13 @@
+{
+  "id": "design-process",
+  "title": "Design Process",
+  "keywords": [
+    "design process",
+    "wireframe",
+    "ux process",
+    "ui process",
+    "prototype",
+    "user flow"
+  ],
+  "summary": "Design starts with mapping user flow diagrams to understand users and goals, then translating flows into low-fidelity wireframes focused on layout and core functionality. Designs are iterated collaboratively with client feedback, ending in a dev-ready prototype."
+}

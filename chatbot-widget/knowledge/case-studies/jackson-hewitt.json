@@ -1,0 +1,24 @@
+{
+  "id": "jackson-hewitt",
+  "title": "Jackson Hewitt",
+  "industries": [
+    "Financial Services"
+  ],
+  "techStack": [
+    "PHP",
+    "MySQL",
+    "JavaScript"
+  ],
+  "keywords": [
+    "tax",
+    "finance",
+    "seasonal scale",
+    "high demand"
+  ],
+  "summary": "Custom software development supporting digital operations through high-demand tax-season periods, on time and within budget.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Digital systems supported the business reliably through busy periods."
+  ]
+}

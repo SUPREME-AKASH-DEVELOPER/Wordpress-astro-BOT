@@ -1,0 +1,30 @@
+{
+  "id": "smart-charging-station-app",
+  "title": "Smart Charging Station Mobile App",
+  "industries": [
+    "Hospitality",
+    "Retail",
+    "Entertainment",
+    "Public Venues"
+  ],
+  "techStack": [
+    "Mobile App",
+    "IoT Integration"
+  ],
+  "keywords": [
+    "charging station",
+    "phone charging",
+    "mobile app",
+    "IoT",
+    "customer convenience",
+    "venue amenity"
+  ],
+  "summary": "Built a mobile-first application letting businesses offer smart phone-charging stations as a customer amenity, with IoT-enabled backend management and networked scalability across venues like hospitality, retail, and entertainment locations.",
+  "quote": "The simplest of services can add significant value through a technologically-driven application.",
+  "quoteAuthor": "",
+  "results": [
+    "Gave businesses a value-added customer convenience that encourages longer visits.",
+    "Created a modern, distinctive amenity that improves brand perception.",
+    "Enabled IoT-based remote management and scalability across multiple locations."
+  ]
+}

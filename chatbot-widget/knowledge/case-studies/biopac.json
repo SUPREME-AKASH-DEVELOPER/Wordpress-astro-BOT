@@ -1,0 +1,30 @@
+{
+  "id": "biopac",
+  "title": "Biopac Systems",
+  "industries": [
+    "Scientific Research",
+    "Data Analytics"
+  ],
+  "techStack": [
+    "PHP",
+    "MySQL",
+    "JavaScript",
+    "AWS"
+  ],
+  "keywords": [
+    "research",
+    "scientific",
+    "data tracking",
+    "education",
+    "lab",
+    "study",
+    "workflow"
+  ],
+  "summary": "Replaced manual research workflows with a custom web app letting researchers and educators run studies, capture data, and review results from one platform.",
+  "quote": "We spoke to a few different companies as we set out to find someone to create a website/database application to augment our desktop software. We chose The Demski Group in part because we found them very easy to talk to in our interview. That first impression stuck as we have a great relationship with them now.",
+  "quoteAuthor": "Mickey Rowe, Manager",
+  "results": [
+    "Researchers now perform and track studies online, cutting time spent on manual data handling.",
+    "Ongoing partnership, Biopac continues to work with The Demski Group on new projects without considering other vendors."
+  ]
+}

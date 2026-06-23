@@ -1,0 +1,28 @@
+{
+  "id": "environmental-impact-map",
+  "title": "Environmental Cleanup Impact Map",
+  "industries": [
+    "Nonprofit",
+    "Environmental"
+  ],
+  "techStack": [
+    "Interactive Map",
+    "Data Visualization"
+  ],
+  "keywords": [
+    "environmental",
+    "nonprofit",
+    "cleanup",
+    "data visualization",
+    "interactive map",
+    "donor engagement"
+  ],
+  "summary": "Built an interactive map-based website for an environmental cleanup organization that visualizes where cleanups happened and how much was collected at each site, turning raw cleanup data into an engaging, explorable story for supporters and donors instead of static reports.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Made environmental impact visible and explorable instead of buried in reports.",
+    "Helped build trust and engagement with supporters, volunteers, and donors.",
+    "Gave the organization a clearer, more memorable way to tell its impact story."
+  ]
+}

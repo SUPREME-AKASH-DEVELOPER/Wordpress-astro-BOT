@@ -1,0 +1,30 @@
+{
+  "id": "zoomifi",
+  "title": "Zoomifi",
+  "industries": [
+    "Mobile Apps",
+    "Point of Sale"
+  ],
+  "techStack": [
+    "React Native",
+    "Node.js",
+    "iOS",
+    "Android"
+  ],
+  "keywords": [
+    "pos",
+    "point of sale",
+    "payments",
+    "merchant",
+    "transactions",
+    "mobile app"
+  ],
+  "summary": "Multi-platform POS applications across iOS, Android, and other platforms, built to handle high transaction volume with merchant flexibility and scalability.",
+  "quote": "After working with many development firms, I now funnel all my development to The Demski Group. The Demski Group has become our main app developer thanks to their consistency, quality of work, and high level of communication. They deliver apps with minimal bugs, remain open to feedback, and can take an app from idea to execution with next to no management on our part.",
+  "quoteAuthor": "Slava Moshkovich, President",
+  "results": [
+    "The POS applications have handled millions of transactions reliably.",
+    "Thousands of merchants have adopted the apps.",
+    "Flexibility and functionality enabled merchants to streamline operations and increase customer satisfaction."
+  ]
+}

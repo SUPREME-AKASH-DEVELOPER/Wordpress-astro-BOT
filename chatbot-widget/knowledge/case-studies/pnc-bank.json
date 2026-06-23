@@ -1,0 +1,26 @@
+{
+  "id": "pnc-bank",
+  "title": "PNC Bank",
+  "industries": [
+    "Financial Services"
+  ],
+  "techStack": [
+    ".NET",
+    "SQL Server",
+    "Azure"
+  ],
+  "keywords": [
+    "bank",
+    "fintech",
+    "finance",
+    "enterprise",
+    "security",
+    "compliance"
+  ],
+  "summary": "Provided custom development and consulting for a major financial services brand, meeting the rigorous reliability and security standards required for systems handling sensitive financial data.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Deliverables completed on schedule and met the required quality bar for financial-industry reliability."
+  ]
+}

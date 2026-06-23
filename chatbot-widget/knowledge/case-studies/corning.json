@@ -1,0 +1,23 @@
+{
+  "id": "corning",
+  "title": "Corning",
+  "industries": [
+    "Manufacturing"
+  ],
+  "techStack": [
+    "WordPress",
+    "PHP",
+    "JavaScript"
+  ],
+  "keywords": [
+    "manufacturing",
+    "flexible timeline",
+    "scheduling"
+  ],
+  "summary": "Stayed flexible as project timelines changed, keeping the work on track.",
+  "quote": "The Demski Group team were great in helping out with our project and flexible with some of our changing timelines!",
+  "quoteAuthor": "",
+  "results": [
+    "Project completed successfully despite changing timelines."
+  ]
+}

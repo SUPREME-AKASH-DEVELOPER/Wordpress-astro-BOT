@@ -1,0 +1,31 @@
+{
+  "id": "distinct-consulting",
+  "title": "Distinct Consulting",
+  "industries": [
+    "Compliance Consulting",
+    "Investigations",
+    "SaaS"
+  ],
+  "techStack": [
+    "JavaScript",
+    "PHP",
+    "OpenAI API"
+  ],
+  "keywords": [
+    "investigation reporting",
+    "compliance",
+    "SaaS platform",
+    "AI report generation",
+    "case management",
+    "evidence management"
+  ],
+  "summary": "Built a custom SaaS web application for Distinct Consulting that turns manual, time-intensive investigation reporting into a structured, scalable system combining guided workflows with AI-powered report generation (OpenAI API), covering case creation, evidence/document uploads, multi-section report generation (introduction, parties involved, allegations, policies, evidence summaries, findings of fact), and admin controls for users and AI usage.",
+  "quote": "Reduce report development time from 4-5 hours to just minutes.",
+  "quoteAuthor": "",
+  "results": [
+    "Investigation report development time cut from 4-5 hours to just minutes.",
+    "Consistent, professional, legally defensible report formatting across all cases.",
+    "Centralized case data, document, and evidence management in one platform.",
+    "Scalable usage and admin controls for managing AI-assisted report generation."
+  ]
+}

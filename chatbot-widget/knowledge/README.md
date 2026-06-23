@@ -1,10 +1,24 @@
 # Chatbot Knowledge Base
 
-This folder is the chatbot's content source. The retrieval layer (`api/_lib/knowledge.js`) loads every `*.json` file in this directory at startup and searches across all of them for each user message — no code changes are needed to add content, only new entries (or new files) here.
+This folder is the chatbot's content source. The retrieval layer (`api/_lib/knowledge.js`) walks every subfolder recursively and loads every `*.json` file it finds, then searches across all of them for each user message — no code changes are needed to add content, only new files.
 
-## Adding a new case study, service, or fact
+## Folder structure
 
-Open the relevant file (`case-studies.json`, `services.json`, `company.json`, `process.json`) and append a new object to the array. Each entry needs:
+```
+knowledge/
+  case-studies/    one file per client case study (id.json)
+  blog-posts/       one file per blog post (id.json)
+  results/          one file per /results/ entry (id.json)
+  company/          one file per company fact (id.json)
+  services/         one file per service offering (id.json)
+  process/          one file per process/methodology fact (id.json)
+```
+
+Each subfolder maps to a content type; within it, each file is one knowledge entry named after its `id`. This mirrors the site's own sections (`/our-clients/`, `/blog/`, `/results/`, etc.) so it's obvious where new content belongs.
+
+## Adding a new entry
+
+Create a new file inside the matching subfolder (e.g. `knowledge/case-studies/new-client.json`). Each entry is a single JSON object:
 
 ```json
 {
@@ -18,13 +32,15 @@ Open the relevant file (`case-studies.json`, `services.json`, `company.json`, `p
 }
 ```
 
-Only `id`, `title`, `keywords`, and `summary` are required — the rest are optional extras used for case studies specifically.
+Only `id`, `title`, `keywords`, and `summary` are required — the rest are optional extras used mainly for case studies/results.
 
 **Keywords matter most for retrieval.** Include the words a real visitor would actually type — product names, industries, technologies, pain points — not just the formal title. The more specific and varied the keywords, the more reliably this entry surfaces for relevant questions.
 
-## Adding a whole new content type (e.g. blog posts)
+## Adding a whole new content type
 
-Create a new file, e.g. `blog-posts.json`, following the same array-of-objects shape above. It will be picked up automatically — no changes to `knowledge.js` or `chat.js` are required, since the loader reads every `.json` file in this directory.
+Create a new subfolder (e.g. `knowledge/faq/`) and drop entry files into it the same way. It's picked up automatically — no changes to `knowledge.js` or `chat.js` are required, since the loader recurses into every directory under `knowledge/`.
+
+A flat top-level file containing a JSON array (the old format) still works too, if you ever prefer one file over many for a given content type — the loader accepts both shapes.
 
 ## How retrieval works
 
@@ -32,4 +48,4 @@ For every user message, `api/_lib/knowledge.js` scores every entry across every 
 
 ## Keeping content current
 
-This is a versioned snapshot, not a live feed from WordPress (the chatbot has no WordPress/CMS credentials and the architecture intentionally avoids requiring any). When a new case study, service, or blog post goes live on the website, add a matching entry here and redeploy `chatbot-widget` — that's the only step required to make the chatbot aware of it.
+This is a versioned snapshot, not a live feed from WordPress (the chatbot has no WordPress/CMS credentials and the architecture intentionally avoids requiring any). When a new case study, service, blog post, or result goes live on the website, add a matching entry file here and redeploy `chatbot-widget` — that's the only step required to make the chatbot aware of it.

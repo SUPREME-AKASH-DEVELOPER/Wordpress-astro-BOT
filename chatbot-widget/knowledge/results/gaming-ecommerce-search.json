@@ -1,0 +1,28 @@
+{
+  "id": "gaming-ecommerce-search",
+  "title": "Gaming Retail E-commerce Platform",
+  "industries": [
+    "E-commerce",
+    "Gaming Retail"
+  ],
+  "techStack": [
+    "Custom Search",
+    "External Gaming Database Integration"
+  ],
+  "keywords": [
+    "gaming",
+    "ecommerce",
+    "online store",
+    "product search",
+    "recommendations",
+    "game retailer"
+  ],
+  "summary": "Built a custom e-commerce platform for a gaming retailer, integrated with an external gaming database and an intelligent, context-aware search that helps shoppers find the right title even without an exact search term, plus smart product recommendations.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Easier product discovery for customers browsing by platform, franchise, or genre, not just exact titles.",
+    "More relevant search results and product recommendations.",
+    "Reduced shopper frustration and abandonment, supporting stronger sales conversions."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "robomaster",
+  "title": "Robomaster",
+  "industries": [
+    "Technology"
+  ],
+  "techStack": [
+    "JavaScript",
+    "Node.js",
+    "AWS"
+  ],
+  "keywords": [
+    "custom software",
+    "technical support"
+  ],
+  "summary": "Custom software development plus ongoing technical support tailored to the client's product requirements.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Reliable, well-built software backing the client's product."
+  ]
+}

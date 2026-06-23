@@ -1,0 +1,24 @@
+{
+  "id": "willo",
+  "title": "Willo",
+  "industries": [
+    "HR Tech"
+  ],
+  "techStack": [
+    "React",
+    "Node.js",
+    "AWS"
+  ],
+  "keywords": [
+    "hr tech",
+    "video interviewing",
+    "saas",
+    "platform support"
+  ],
+  "summary": "Ongoing development support for a video interviewing platform, helping the team ship improvements reliably and efficiently.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Platform improvements continue to ship through consistent, dependable releases."
+  ]
+}

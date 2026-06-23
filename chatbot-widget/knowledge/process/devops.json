@@ -1,0 +1,15 @@
+{
+  "id": "devops",
+  "title": "DevOps & Infrastructure",
+  "keywords": [
+    "devops",
+    "ci/cd",
+    "deployment",
+    "cloud",
+    "infrastructure",
+    "hosting",
+    "security",
+    "scalability"
+  ],
+  "summary": "Automated CI/CD pipelines build, test, and deploy code automatically to reduce manual errors and speed up delivery. Cloud environments are designed to scale from a startup app to an enterprise platform, with continuous monitoring and a security-first approach."
+}

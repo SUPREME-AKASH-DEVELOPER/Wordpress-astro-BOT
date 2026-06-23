@@ -1,0 +1,27 @@
+{
+  "id": "property-gauge",
+  "title": "Property Gauge",
+  "industries": [
+    "PropTech"
+  ],
+  "techStack": [
+    "React",
+    "Node.js",
+    "PostgreSQL"
+  ],
+  "keywords": [
+    "property",
+    "real estate",
+    "proptech",
+    "automation",
+    "dashboard",
+    "analysis tool"
+  ],
+  "summary": "Built custom software automating property analysis tasks, replacing manual spreadsheet workflows and centralizing property data.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "The team can analyze properties in a fraction of the time previously required.",
+    "Automation removed repetitive manual tasks from the workflow."
+  ]
+}

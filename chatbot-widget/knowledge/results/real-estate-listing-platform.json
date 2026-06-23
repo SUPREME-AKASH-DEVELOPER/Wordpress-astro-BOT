@@ -1,0 +1,26 @@
+{
+  "id": "real-estate-listing-platform",
+  "title": "Real Estate Listing & Home-Buying Platform",
+  "industries": [
+    "Real Estate"
+  ],
+  "techStack": [
+    "Web Platform",
+    "Guided Forms"
+  ],
+  "keywords": [
+    "real estate",
+    "property listings",
+    "home buying",
+    "listing platform",
+    "real estate website"
+  ],
+  "summary": "Built a real estate platform with organized, consistent listing forms for sellers and guided step-by-step forms for buyers, replacing scattered/inconsistent listings and an unclear buying process with a clear, well-organized path from search to closing.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Simplified listing management for sellers with consistent, complete property data.",
+    "Easier home search and a clearer step-by-step buying process for buyers.",
+    "Reduced mismatched/incomplete listing information across the platform."
+  ]
+}

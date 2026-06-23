@@ -1,0 +1,25 @@
+{
+  "id": "nu-borders",
+  "title": "Nu Borders",
+  "industries": [
+    "Technology",
+    "Consulting"
+  ],
+  "techStack": [
+    "React",
+    "Node.js",
+    "AWS"
+  ],
+  "keywords": [
+    "website redesign",
+    "react",
+    "responsive design"
+  ],
+  "summary": "Modernized React JS website with a sleek, fully responsive design and improved navigation/performance.",
+  "quote": "We had a fantastic experience working with The Demski Group. They communicated regularly, understood that things can change and adapted as we sorted through the issues that came up with the project. The site was completed on time and we look forward to working with them again.",
+  "quoteAuthor": "David Smith, Budapest Founder",
+  "results": [
+    "Updated website provided a more engaging, user-friendly experience.",
+    "Improved online presence helped attract new clients."
+  ]
+}

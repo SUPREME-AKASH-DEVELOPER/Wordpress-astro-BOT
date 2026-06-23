@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { readdirSync, readFileSync, statSync } from 'fs';
+import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -9,6 +9,25 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // this avoids re-reading every knowledge file on every single message.
 let cachedEntries = null;
 
+// Walks the knowledge directory recursively so content can be organized
+// into subfolders by type (knowledge/case-studies/*.json,
+// knowledge/blog-posts/*.json, etc.) — one entry per file, or a flat
+// top-level *.json file containing an array, both work. _source is kept
+// relative to the knowledge root for readable error/debug output.
+function collectJsonFiles(dir, root) {
+  let results = [];
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      results = results.concat(collectJsonFiles(full, root));
+    } else if (name.endsWith('.json')) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
 function loadKnowledgeDir() {
   const candidates = [
     join(__dirname, '..', '..', 'knowledge'),
@@ -16,19 +35,22 @@ function loadKnowledgeDir() {
   ];
   for (const dir of candidates) {
     try {
-      const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+      const files = collectJsonFiles(dir, dir);
       if (files.length === 0) continue;
       const entries = [];
       for (const file of files) {
+        const source = relative(dir, file);
         try {
-          const parsed = JSON.parse(readFileSync(join(dir, file), 'utf8'));
+          const parsed = JSON.parse(readFileSync(file, 'utf8'));
           if (Array.isArray(parsed)) {
             for (const entry of parsed) {
-              entries.push({ ...entry, _source: file });
+              entries.push({ ...entry, _source: source });
             }
+          } else if (parsed && typeof parsed === 'object') {
+            entries.push({ ...parsed, _source: source });
           }
         } catch (e) {
-          console.error('[knowledge] failed to parse', file, e.message);
+          console.error('[knowledge] failed to parse', source, e.message);
         }
       }
       return entries;

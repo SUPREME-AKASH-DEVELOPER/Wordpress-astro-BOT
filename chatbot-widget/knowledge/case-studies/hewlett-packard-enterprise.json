@@ -1,0 +1,25 @@
+{
+  "id": "hewlett-packard-enterprise",
+  "title": "Hewlett Packard Enterprise",
+  "industries": [
+    "Enterprise Technology"
+  ],
+  "techStack": [
+    ".NET",
+    "Java",
+    "Azure",
+    "AWS"
+  ],
+  "keywords": [
+    "enterprise",
+    "consulting",
+    "global",
+    "standards"
+  ],
+  "summary": "Enterprise-grade software development and consulting meeting the rigorous standards expected of a global technology leader.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": [
+    "Delivered work that met the rigorous standards expected by a global technology leader."
+  ]
+}

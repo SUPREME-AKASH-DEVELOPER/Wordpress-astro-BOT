@@ -1,0 +1,17 @@
+{
+  "id": "how-long-custom-software-takes",
+  "title": "How Long Does It Actually Take to Build Custom Software?",
+  "keywords": [
+    "timeline",
+    "how long",
+    "development time",
+    "project duration",
+    "discovery phase",
+    "software development process",
+    "agile"
+  ],
+  "summary": "Blog post explaining custom software development timelines. Small internal tools (dashboards, workflow tools): 2-4 months. Mid-sized applications (customer portals, e-commerce, inventory systems): 4-8 months. Enterprise platforms (ERP systems, large-scale SaaS, multi-location systems): 8-18+ months. The 6 phases are: Discovery & Planning (2-6 weeks), Architecture & Solution Design, UX/UI Design, Development (usually the longest phase, done in sprints), Testing & QA, and Deployment & Launch. Biggest factors affecting timeline: project scope, number of integrations, requirement changes mid-project, legacy system complexity, and how quickly stakeholders review/approve work. Agile methodology is used to give regular progress visibility and adapt to changing requirements rather than waiting months to see results.",
+  "quote": "",
+  "quoteAuthor": "",
+  "results": []
+}
