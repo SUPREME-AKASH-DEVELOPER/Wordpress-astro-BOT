@@ -195,7 +195,7 @@
     + '#lead-bot::before{content:"";position:absolute;inset:0;border-radius:25px;padding:3px;background:linear-gradient(135deg,#0154B1,#4facfe,#7b5cff,#0154B1);background-size:300% 300%;animation:cb-border-flow 6s ease infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;pointer-events:none;z-index:1;}'
     + '@keyframes cb-pop-in{from{opacity:0;transform:translateY(20px) scale(.96);}to{opacity:1;transform:none;}}'
     + '@keyframes cb-border-flow{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}'
-    + '.cb-card{width:360px;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.3);backdrop-filter:blur(8px) saturate(1.4);-webkit-backdrop-filter:blur(8px) saturate(1.4);box-shadow:0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 65px);height:635px;font-family:"Outfit",sans-serif;box-sizing:border-box;}'
+    + '.cb-card{width:420px;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.3);backdrop-filter:blur(8px) saturate(1.4);-webkit-backdrop-filter:blur(8px) saturate(1.4);box-shadow:0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 65px);height:760px;font-family:"Outfit",sans-serif;box-sizing:border-box;}'
     + '.cb-card *{box-sizing:border-box;}'
     + '.cb-header{background:linear-gradient(135deg,#0154B1 0%,#1a7fe8 100%);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}'
     + '.cb-user{display:flex;gap:11px;align-items:center;}'
@@ -261,6 +261,14 @@
     + '.cb-schedule:hover{filter:brightness(.92);}'
     + '#cb-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.45);z-index:2147483645;opacity:0;pointer-events:none;transition:opacity .25s ease;display:none;}'
     + '#cb-backdrop.cb-backdrop-on{opacity:1;pointer-events:all;}'
+    /* Large-desktop scaling: the 420px/760px base size (set above) already
+     * covers typical laptop screens, but on bigger monitors that same fixed
+     * size starts to look small and cramped relative to all the empty
+     * space around it. These two breakpoints only ever make the panel
+     * larger — never override width/height below 1440px — so laptops,
+     * tablets, and the mobile breakpoint further down are unaffected. */
+    + '@media (min-width:1440px){.cb-card{width:460px;height:820px;}}'
+    + '@media (min-width:1920px){.cb-card{width:500px;height:880px;}}'
     + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;}.cb-card{width:100%;height:100%;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
 
   function injectStyles() {
@@ -470,6 +478,7 @@
      * resolves), which otherwise stacks near-identical AI replies. */
     var aiRequestInFlight = false;
     var handleInputInFlight = false;
+    var ctaHandled = false;
 
     /* Derive API endpoint from widget.js src — same origin as the widget */
     var API_URL = (function () {
@@ -1342,6 +1351,14 @@
     }
 
     function handleCTA(choice) {
+      // Synchronous guard, checked before any other work — removing #cb-cta
+      // from the DOM does NOT stop multiple synchronous clicks on the same
+      // button reference from each running this handler to completion in
+      // the same tick (e.g. a rapid double-click, or two pointer events
+      // firing back to back), which without this would fire submitLead()
+      // and the SendGrid request multiple times for one lead.
+      if (ctaHandled) return;
+      ctaHandled = true;
       var d = document.getElementById('cb-cta'); if (d) d.remove();
       addUserMsg(choice); lead.cta_choice = choice;
       inputEl.disabled = true; inputEl.placeholder = 'Chat complete';

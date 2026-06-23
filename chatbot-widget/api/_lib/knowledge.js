@@ -128,6 +128,22 @@ function fuzzyMatches(word, target) {
  * getRelevantKnowledge() signature if the knowledge base grows much larger. */
 function scoreEntry(entry, queryWords, queryLower) {
   let score = 0;
+
+  // Exact-title-match bonus: if the query contains the entry's full title
+  // as a substring (e.g. "Tell me about FlowerMoxie" contains "FlowerMoxie"),
+  // that's an unambiguous, high-confidence signal on its own — a single-word
+  // proper-noun query like "FlowerMoxie" or "Biopac" would otherwise only
+  // earn 2 points from the per-word title scoring below (one title-word hit),
+  // landing just under RELEVANCE_FLOOR (3) and silently returning no match
+  // for exactly the kind of direct "tell me about X" question a real visitor
+  // is most likely to ask. Scored well above the floor so it always surfaces
+  // regardless of word count, without needing every short company name added
+  // as its own keyword by hand.
+  const titleLower = (entry.title || '').toLowerCase();
+  if (titleLower && titleLower.length >= 3 && queryLower.includes(titleLower)) {
+    score += 5;
+  }
+
   const keywords = (entry.keywords || []).map((k) => k.toLowerCase());
   for (const kw of keywords) {
     if (queryLower.includes(kw)) {
@@ -143,8 +159,17 @@ function scoreEntry(entry, queryWords, queryLower) {
   }
   const titleWords = tokenize(entry.title);
   const summaryWords = tokenize(entry.summary);
+  // The first word of a title is almost always the actual brand/company name
+  // ("Biopac" in "Biopac Systems", "Jackson" in "Jackson Hewitt") — a visitor
+  // asking about just that one word (a shortened/partial company name) is
+  // giving as strong a signal as someone who got the full title right, so it
+  // earns the same weight as a keyword hit rather than the generic +2 every
+  // other title word gets. Avoids needing to hand-add every short company
+  // name as its own keyword just to clear the relevance floor.
+  const firstTitleWord = titleWords[0];
   for (const qw of queryWords) {
     if (qw.length < 3) continue; // skip tiny stopword-ish tokens
+    if (firstTitleWord && qw === firstTitleWord) { score += 3; continue; }
     if (titleWords.includes(qw)) { score += 2; continue; }
     if (summaryWords.includes(qw)) { score += 1; continue; }
     if (titleWords.some((tw) => fuzzyMatches(qw, tw))) score += 1;
