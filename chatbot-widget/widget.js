@@ -630,11 +630,16 @@
      * to already answer that question, so the caller can skip re-showing
      * redundant MCQ buttons instead of always showing them regardless of
      * context. onDone receives (reply, stepAnswered, matchedOption,
-     * redirected) — redirected is true when the AI's reply itself asked a
-     * new specific question (e.g. for a name), meaning the caller should
-     * show NO buttons at all and just wait for the next typed message,
-     * rather than stacking the original MCQ options underneath. All three
-     * signal fields are null when no stepContext was supplied. */
+     * redirected, collectContact) — redirected is true when the AI's reply
+     * itself asked a new specific question, meaning the caller should show
+     * NO buttons at all and just wait for the next typed message, rather
+     * than stacking the original MCQ options underneath. collectContact is
+     * true specifically when the user wants to be connected with the team
+     * (e.g. "can someone contact me") — the AI defers entirely to the
+     * widget's own validated name/phone/email flow instead of asking for
+     * those itself, so the caller should hand off to enterContactFlow()
+     * rather than treating this like an ordinary redirect. All signal
+     * fields are null when no stepContext was supplied. */
     function askAI(userText, silent, onDone, stepContext) {
       if (aiRequestInFlight) return;
       aiRequestInFlight = true;
@@ -662,7 +667,7 @@
         addBotMsg(reply);
         resetIdleTimer();
         setTimeout(function () { inputEl.focus(); }, 100);
-        if (onDone) onDone(reply, data.stepAnswered === true, data.matchedOption || null, data.redirected === true);
+        if (onDone) onDone(reply, data.stepAnswered === true, data.matchedOption || null, data.redirected === true, data.collectContact === true);
       })
       .catch(function () {
         aiRequestInFlight = false;
@@ -670,7 +675,7 @@
         inputEl.disabled = false;
         addBotMsg("Sorry, I'm having trouble connecting right now. Please call us at 406-936-3049 or email contact@demskigroup.com.");
         resetIdleTimer();
-        if (onDone) onDone(null, false, null, false);
+        if (onDone) onDone(null, false, null, false, false);
       });
     }
 
@@ -1268,33 +1273,72 @@
         skip.onclick = function () {
           var el = document.getElementById('cb-notes-skip'); if (el) el.remove();
           addUserMsg('Skip');
-          goToContactStep();
+          goToContactStep("Thanks, this helps a lot!");
         };
         div.appendChild(skip);
         msgs.appendChild(div); scrollToLatestBotMsg();
       });
     }
 
-    function goToContactStep() {
-      step = 5; resetIdleTimer();
+    /* Single entry point into contact collection (called both when the
+     * project-qualification flow naturally finishes, and when the user
+     * asks to be connected with the team mid-conversation). A lead is only
+     * ever collected once per session: if name/phone/email are already on
+     * file from an earlier pass through this same flow, each is skipped
+     * rather than re-asked, and if all three are already known, this jumps
+     * straight to the final CTA with a personalized acknowledgment instead
+     * of repeating questions the visitor already answered. introMsg lets
+     * callers phrase the hand-off appropriately for their own context
+     * (e.g. "thanks, that helps" vs. "let me grab a few details so our
+     * team can reach out") without duplicating the skip-logic itself. */
+    function goToContactStep(introMsg) {
+      resetIdleTimer();
+      if (lead.name && lead.phone && lead.email) {
+        showInputBar();
+        botReply("Perfect, " + lead.name + "! I already have your contact information on file. " +
+          "Based on what you've shared, the best next step is a quick call or Google Meet to go over your project!", function () {
+          showFinalCTA(true);
+        });
+        return;
+      }
+      step = !lead.name ? 5 : !lead.phone ? 6 : 7;
       showInputBar();
       inputEl.placeholder = 'Type your answer...';
       setTimeout(function () { inputEl.focus(); }, 50);
-      botReply("Thanks, this helps a lot! Let me grab your details so our team can reach out.<br><br>What's your name?");
+      var nextQuestion = step === 5 ? "What's your name?" : step === 6 ? "What's the best phone number to reach you?" : "What's the best email address to reach you?";
+      var intro = introMsg === undefined ? "Let me grab your details so our team can reach out." : introMsg;
+      botReply(intro ? intro + '\n\n' + nextQuestion : nextQuestion);
     }
 
-    /* ── FINAL CTA ── */
-    function showFinalCTA() {
+    /* Entry point used when the AI signals [[COLLECT_CONTACT]] mid-conversation
+     * (e.g. "can you connect me with somebody?") rather than at the natural
+     * end of project qualification — same skip-already-known-fields logic,
+     * just reached from a different conversational moment. No separate
+     * intro line here: the AI's own reply (already shown by askAI just
+     * before this runs) already acknowledged the request naturally per the
+     * system prompt, so repeating an intro would be a visible duplicate. */
+    function enterContactFlow() {
+      goToContactStep('');
+    }
+
+    /* ── FINAL CTA ──
+     * skipIntro is true when the caller (goToContactStep, for an
+     * already-fully-known lead) already delivered an equivalent
+     * "here's the next step" line itself — avoids stacking two near-
+     * identical sentences back to back. */
+    function showFinalCTA(skipIntro) {
       step = 8; clearTimeout(idleTimer);
       hideInputBar();
-      botReply("Awesome! Based on what you've shared, the best next step is a quick call or Google Meet to go over your project!", function () {
+      function renderCtaButtons() {
         var div = document.createElement('div'); div.className = 'cb-cta-btns'; div.id = 'cb-cta';
         var book = document.createElement('button'); book.className = 'cb-cta-primary'; book.textContent = 'Book a Google Meet';
         book.onclick = function () { handleCTA('Book a Google Meet'); window.open(CALENDLY_URL, '_blank'); };
         var em = document.createElement('button'); em.className = 'cb-cta-secondary'; em.textContent = 'Send me info by email';
         em.onclick = function () { handleCTA('Send me info by email'); };
         div.appendChild(book); div.appendChild(em); msgs.appendChild(div); scrollToLatestBotMsg();
-      }, 1200);
+      }
+      if (skipIntro) { renderCtaButtons(); return; }
+      botReply("Awesome! Based on what you've shared, the best next step is a quick call or Google Meet to go over your project!", renderCtaButtons, 1200);
     }
 
     function handleCTA(choice) {
@@ -1391,22 +1435,30 @@
       var noFollowUpDiv = document.getElementById('cb-no-followup');
       if (noFollowUpDiv) {
         noFollowUpDiv.remove();
-        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
-          if (stepAnswered) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
+          if (collectContact) {
+            enterContactFlow();
+          } else if (stepAnswered) {
             selectNoFollowUp(matchedOption || val);
           } else if (!redirected) {
             renderNoFollowUpButtons();
           }
           /* redirected: the AI's own reply already asked something new and
            * specific (e.g. for a name) — show no buttons, just wait for the
-           * next typed message instead of stacking a second question. */
+           * next typed message instead of stacking a second question.
+           * collectContact: the user asked to be connected with the team —
+           * hand off to the widget's own validated contact flow instead of
+           * letting the AI free-collect name/phone/email itself, so a lead
+           * already on file from an earlier pass is never re-asked. */
         }, { question: "What's one thing in your business that feels harder than it should be?", options: NO_FOLLOWUP_OPTS });
         return;
       }
 
       if (step === 0) {
-        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
-          if (stepAnswered) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
+          if (collectContact) {
+            enterContactFlow();
+          } else if (stepAnswered) {
             step1Handler(matchedOption || val, true);
           } else if (!redirected) {
             renderStep0Buttons();
@@ -1418,8 +1470,10 @@
       if (step === 1) {
         var el = document.getElementById('cb-intent'); if (el) el.remove();
         var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
-        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
-          if (stepAnswered) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
+          if (collectContact) {
+            enterContactFlow();
+          } else if (stepAnswered) {
             lead.intent_detail = matchedOption || val; step = 2; showTimelineStep();
           } else if (!redirected) {
             showIntentOptions(lead.intent);
@@ -1431,8 +1485,10 @@
       if (step === 2) {
         var elT = document.getElementById('cb-timeline'); if (elT) elT.remove();
         var timelineOpts = ['ASAP', '1-3 months', '3-6 months', '6+ months', 'Not sure yet'];
-        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
-          if (stepAnswered) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
+          if (collectContact) {
+            enterContactFlow();
+          } else if (stepAnswered) {
             lead.timeline = matchedOption || val; showBudgetStep();
           } else if (!redirected) {
             showTimelineStep();
@@ -1444,8 +1500,10 @@
       if (step === 3) {
         var elB = document.getElementById('cb-budget'); if (elB) elB.remove();
         var budgetOpts = ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'];
-        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
-          if (stepAnswered) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
+          if (collectContact) {
+            enterContactFlow();
+          } else if (stepAnswered) {
             lead.budget = matchedOption || val; showNotesStep();
           } else if (!redirected) {
             showBudgetStep();
@@ -1459,7 +1517,7 @@
       if (step === 4) {
         var elS = document.getElementById('cb-notes-skip'); if (elS) elS.remove();
         lead.project_notes = val;
-        goToContactStep();
+        goToContactStep("Thanks, this helps a lot!");
         return;
       }
 
