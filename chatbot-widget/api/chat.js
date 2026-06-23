@@ -57,9 +57,7 @@ Movies, TV, Celebrities, Sports, Politics, Religion, Medical Advice, Legal Advic
 "I'm here specifically to help with The Demski Group's services and solutions. If you have a question about software development, AI solutions, automation, or working with Demski, I'd be happy to help!"
 
 ## Lead Collection Trigger
-When the user is clearly interested and you've qualified their need, naturally transition to collecting their contact info by saying something like:
-"I'd love to connect you with our team, can I grab your name and a few quick details so they can reach out?"
-Then collect: name, phone, email (one at a time, naturally).
+When the user is clearly interested, asks to be connected with someone, asks for a callback, or you've otherwise qualified their need, acknowledge naturally (e.g. "I'd love to connect you with our team, let me grab a few details so they can reach out.") but do NOT ask for their name, phone, or email yourself, the widget's own validated flow handles that. See the [[COLLECT_CONTACT]] marker rule below when a qualification question is active.
 
 ## Communication Style
 - Professional, helpful, human, concise, business-focused, conversational
@@ -84,33 +82,39 @@ function formatStepContext(stepContext) {
   return '\n\n## Current Qualification Question\n' +
     'The widget is currently waiting on an answer to: "' + stepContext.question + '"' + optionsText +
     ' Always answer/acknowledge what the user actually said first, naturally, like a real consultant would, before anything else. ' +
-    'Then decide which ONE of these three situations applies, and end your reply with exactly one machine-readable marker reflecting it, on its own at the very end, never described or explained in the visible text:\n' +
+    'Then decide which ONE of these four situations applies, and end your reply with exactly one machine-readable marker reflecting it, on its own at the very end, never described or explained in the visible text:\n' +
     '1. Their message answers the current question and clearly maps to one of the listed options: end with [[STEP_ANSWERED:exact option text]], copied exactly as given above.\n' +
     '2. Their message answers the current question in their own words but does not map to any listed option: end with [[STEP_ANSWERED:]] (empty).\n' +
     '3. Their message does NOT answer the current question, but you did NOT ask your own new specific question in reply (e.g. you just answered an unrelated question, or made a general comment): end with [[STEP_NOT_ANSWERED]] — the widget will re-show the original option buttons since the current question is still open.\n' +
-    '4. Their message does NOT answer the current question, AND your reply itself asks the user something new and specific that needs a typed answer (e.g. asking for their name, phone, email, or any other specific detail you need next): end with [[REDIRECTED]] — the widget will wait for a typed reply to YOUR new question instead of showing the original option buttons, since showing them now would stack two unrelated questions at once.\n' +
-    'This marker is REQUIRED on every single reply while a qualification question is active, with no exceptions, even for short replies, off-topic answers, or replies that just answer a factual question. Forgetting it causes the widget to show the wrong buttons to the user, which is a visible bug. Double-check before finishing your reply that it ends with exactly one of [[STEP_ANSWERED:...]], [[STEP_NOT_ANSWERED]], or [[REDIRECTED]].';
+    '4. Their message does NOT answer the current question, AND your reply itself asks the user something new and specific that needs a typed answer, BUT it is NOT about getting their name/phone/email (e.g. asking what platform they currently use): end with [[REDIRECTED]] — the widget will wait for a typed reply to YOUR new question instead of showing the original option buttons.\n' +
+    '5. The user wants to be connected with the team, asked for contact/a callback, or otherwise made it clear it is time to collect their contact details (e.g. "can someone contact me", "can you connect me with somebody", "I\'d like to talk to someone"): do NOT ask for their name/phone/email yourself in the visible text at all, just acknowledge naturally (e.g. "Of course, let me grab a few details so our team can reach out.") and end with [[COLLECT_CONTACT]] instead — the widget itself will take over asking for name, phone, and email one at a time through its own validated flow, skipping any of those three it may already have on file. Never ask for name, phone, or email yourself in the visible reply text under any circumstance, even if the user offers it unprompted — always defer to the widget via [[COLLECT_CONTACT]].\n' +
+    'This marker is REQUIRED on every single reply while a qualification question is active, with no exceptions, even for short replies, off-topic answers, or replies that just answer a factual question. Forgetting it causes the widget to show the wrong buttons to the user, which is a visible bug. Double-check before finishing your reply that it ends with exactly one of [[STEP_ANSWERED:...]], [[STEP_NOT_ANSWERED]], [[REDIRECTED]], or [[COLLECT_CONTACT]].';
 }
 
-// Strips the [[STEP_ANSWERED:...]] / [[STEP_NOT_ANSWERED]] / [[REDIRECTED]]
-// marker the model was asked to append (see formatStepContext) and
-// converts it into { stepAnswered, matchedOption, redirected } the widget
-// can act on directly. stepAnswered/matchedOption/redirected are all null
-// when no stepContext was sent for this request — nothing to extract.
+// Strips the [[STEP_ANSWERED:...]] / [[STEP_NOT_ANSWERED]] / [[REDIRECTED]] /
+// [[COLLECT_CONTACT]] marker the model was asked to append (see
+// formatStepContext) and converts it into { stepAnswered, matchedOption,
+// redirected, collectContact } the widget can act on directly. All fields
+// are null when no stepContext was sent for this request — nothing to
+// extract.
 function extractStepSignal(raw, hadStepContext) {
-  if (!hadStepContext) return { reply: raw.trim(), stepAnswered: null, matchedOption: null, redirected: null };
+  if (!hadStepContext) return { reply: raw.trim(), stepAnswered: null, matchedOption: null, redirected: null, collectContact: null };
   const answeredMatch = raw.match(/\[\[STEP_ANSWERED:([^\]]*)\]\]\s*$/i);
   if (answeredMatch) {
     const option = answeredMatch[1].trim();
-    return { reply: raw.replace(answeredMatch[0], '').trim(), stepAnswered: true, matchedOption: option || null, redirected: false };
+    return { reply: raw.replace(answeredMatch[0], '').trim(), stepAnswered: true, matchedOption: option || null, redirected: false, collectContact: false };
+  }
+  const collectContactMatch = /\[\[COLLECT_CONTACT\]\]\s*$/i;
+  if (collectContactMatch.test(raw)) {
+    return { reply: raw.replace(collectContactMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: true, collectContact: true };
   }
   const redirectedMatch = /\[\[REDIRECTED\]\]\s*$/i;
   if (redirectedMatch.test(raw)) {
-    return { reply: raw.replace(redirectedMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: true };
+    return { reply: raw.replace(redirectedMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: true, collectContact: false };
   }
   const notAnsweredMatch = /\[\[STEP_NOT_ANSWERED\]\]\s*$/i;
   if (notAnsweredMatch.test(raw)) {
-    return { reply: raw.replace(notAnsweredMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: false };
+    return { reply: raw.replace(notAnsweredMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: false, collectContact: false };
   }
   // Model didn't include a marker at all — happens often enough with
   // gpt-4o-mini that the widget cannot depend on the marker being present.
@@ -121,7 +125,7 @@ function extractStepSignal(raw, hadStepContext) {
   // of showing buttons is not. Buttons only ever reappear when the model
   // explicitly confirms the question is still unanswered via
   // [[STEP_NOT_ANSWERED]] — never as a blind default.
-  return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: true };
+  return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: true, collectContact: false };
 }
 
 export default async function handler(req, res) {
@@ -192,8 +196,8 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     const raw = data.choices?.[0]?.message?.content || '';
-    const { reply, stepAnswered, matchedOption, redirected } = extractStepSignal(raw, !!stepContext);
-    return res.status(200).json({ reply: reply.replace(/—/g, ','), stepAnswered, matchedOption, redirected });
+    const { reply, stepAnswered, matchedOption, redirected, collectContact } = extractStepSignal(raw, !!stepContext);
+    return res.status(200).json({ reply: reply.replace(/—/g, ','), stepAnswered, matchedOption, redirected, collectContact });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
