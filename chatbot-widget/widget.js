@@ -65,8 +65,8 @@
   };
 
   var AV_STYLE =
-    'width:28px!important;height:28px!important;min-width:28px!important;' +
-    'max-width:28px!important;border-radius:50%!important;object-fit:cover!important;' +
+    'width:34px!important;height:34px!important;min-width:34px!important;' +
+    'max-width:34px!important;border-radius:50%!important;object-fit:cover!important;' +
     'flex-shrink:0!important;display:block!important;border:2px solid #fff!important;align-self:flex-end;';
   var WRAP_STYLE =
     'display:flex!important;align-items:flex-end!important;gap:8px!important;max-width:88%!important;';
