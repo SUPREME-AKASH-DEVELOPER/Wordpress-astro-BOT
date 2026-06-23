@@ -66,24 +66,66 @@ function tokenize(text) {
     .filter((w) => w && !STOPWORDS.has(w));
 }
 
+// Classic edit-distance, used only for short single-word typo tolerance
+// ("shopfy" -> "shopify", "andrw" -> "andrew") — not run on full phrases,
+// so this stays cheap even with a few hundred knowledge entries.
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const prev = new Array(n + 1);
+  const curr = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    for (let j = 0; j <= n; j++) prev[j] = curr[j];
+  }
+  return prev[n];
+}
+
+// One typo allowed per ~5 letters, capped at 2 — strict enough that short
+// unrelated words don't accidentally collide ("app" vs "ago"), loose
+// enough to forgive a dropped/swapped letter in a longer word.
+function fuzzyMatches(word, target) {
+  if (word.length < 4 || target.length < 4) return word === target;
+  const maxDist = Math.min(2, Math.floor(Math.max(word.length, target.length) / 5) + 1);
+  return levenshtein(word, target) <= maxDist;
+}
+
 /* Lightweight relevance scoring — no embeddings/vector DB needed at this
  * content scale (tens to low hundreds of entries). Scores by counting how
  * many of the query's words appear in each entry's keywords/title/summary,
  * weighting keyword hits highest since they're hand-curated for exactly
- * this purpose. Swappable later for a real vector search behind the same
+ * this purpose. Falls back to fuzzy (typo-tolerant) word matching only
+ * when no exact hit was found, so well-spelled queries pay zero extra
+ * cost. Swappable later for a real vector search behind the same
  * getRelevantKnowledge() signature if the knowledge base grows much larger. */
 function scoreEntry(entry, queryWords, queryLower) {
   let score = 0;
   const keywords = (entry.keywords || []).map((k) => k.toLowerCase());
   for (const kw of keywords) {
-    if (queryLower.includes(kw)) score += 3;
+    if (queryLower.includes(kw)) {
+      score += 3;
+      continue;
+    }
+    // Fuzzy fallback: does any single query word nearly-match a single-word
+    // keyword? Weighted the same as an exact keyword hit — a typo on a
+    // hand-curated keyword is just as meaningful as spelling it correctly.
+    if (kw.indexOf(' ') === -1 && queryWords.some((qw) => fuzzyMatches(qw, kw))) {
+      score += 3;
+    }
   }
   const titleWords = tokenize(entry.title);
   const summaryWords = tokenize(entry.summary);
   for (const qw of queryWords) {
     if (qw.length < 3) continue; // skip tiny stopword-ish tokens
-    if (titleWords.includes(qw)) score += 2;
-    if (summaryWords.includes(qw)) score += 1;
+    if (titleWords.includes(qw)) { score += 2; continue; }
+    if (summaryWords.includes(qw)) { score += 1; continue; }
+    if (titleWords.some((tw) => fuzzyMatches(qw, tw))) score += 1;
   }
   return score;
 }
