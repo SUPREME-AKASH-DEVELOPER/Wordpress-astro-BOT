@@ -28,6 +28,24 @@
     }
   })();
 
+  /* Real OS detection (not screen-size media queries) — a Windows laptop
+   * and a MacBook can share the exact same resolution, so width-only
+   * breakpoints can't tell them apart and would size both identically.
+   * userAgentData is the modern, spec-preferred source where available;
+   * falls back to userAgent string sniffing on older/other browsers.
+   * Sets a class on <html> once, at load time, so CSS rules can target
+   * macOS specifically (html.cb-is-mac .cb-card {...}) without touching
+   * any Windows/Linux/mobile rendering at all. */
+  var IS_MAC = (function () {
+    try {
+      if (navigator.userAgentData && navigator.userAgentData.platform) {
+        return navigator.userAgentData.platform.toLowerCase().indexOf('mac') !== -1;
+      }
+    } catch (e) {}
+    return /Mac OS X|Macintosh/i.test(navigator.userAgent || '') && !/iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  })();
+  if (IS_MAC) document.documentElement.classList.add('cb-is-mac');
+
   var AVATAR_URL    = scriptAttr('data-avatar', BASE_URL + 'avatar-alex.png');
   var AVATAR_FB     = scriptAttr('data-avatar-fallback', AVATAR_URL);
   var CALENDLY_URL  = scriptAttr('data-calendly', 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3loQplPyCXe28FPP0trIgOCmhJqwKCXka1x3uCkblaAFtklpetKpkyi6glNBGxVR8jpOQenySG');
@@ -155,7 +173,7 @@
     + '#bot-launcher.cb-launcher-visible{opacity:1;transform:translateY(0) scale(1);}'
     + '#bot-launcher::before{content:"";position:absolute;inset:-3px;border-radius:50%;background:linear-gradient(135deg,#0154B1,#4facfe,#0154B1);z-index:-1;animation:cb-ring-spin 4s linear infinite;}'
     + '@keyframes cb-ring-spin{to{transform:rotate(360deg);}}'
-    + '#bot-launcher img{width:92px;height:92px;border-radius:50%;object-fit:cover;object-position:50% 30%;transform:scale(1.1);border:3px solid #fff;box-shadow:0 6px 24px rgba(1,84,177,0.28);transition:transform .3s ease;}'
+    + '#bot-launcher img{width:110px;height:110px;border-radius:50%;object-fit:cover;object-position:50% 30%;transform:scale(1.1);border:3px solid #fff;box-shadow:0 6px 24px rgba(1,84,177,0.28);transition:transform .3s ease;}'
     + '#bot-launcher:hover img{transform:scale(1.16);}'
     + '.cb-online-dot{position:absolute;bottom:4px;right:4px;width:14px;height:14px;background:#22c55e;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 2px rgba(34,197,94,0.25);}'
     + '.cb-launcher-badge{position:absolute;top:2px;right:2px;width:22px;height:22px;background:#e53e3e;color:#fff;border-radius:50%;border:2px solid #fff;font-size:12px;font-weight:700;font-family:"Outfit",sans-serif;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(229,62,62,0.5);animation:cb-badge-pop .3s cubic-bezier(.34,1.56,.64,1) both;}'
@@ -175,7 +193,7 @@
     + '#cb-greeting-card.cb-gh{opacity:0;transform:translateY(16px) scale(.95);pointer-events:none;}'
     + '.cb-gc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;}'
     + '.cb-gc-av-wrap{position:relative;flex-shrink:0;}'
-    + '.cb-gc-av-wrap img{width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;}'
+    + '.cb-gc-av-wrap img{width:53px;height:53px;border-radius:50%;object-fit:cover;display:block;}'
     + '.cb-gc-av-wrap::before{content:"";position:absolute;inset:-2px;border-radius:50%;background:linear-gradient(135deg,#0154B1,#4facfe);z-index:-1;}'
     + '.cb-gc-online{position:absolute;bottom:-1px;right:-1px;width:11px;height:11px;background:#22c55e;border-radius:50%;border:2px solid #fff;}'
     + '.cb-gc-name{font-size:15px;font-weight:700;color:#111;}'
@@ -195,7 +213,7 @@
     + '#lead-bot::before{content:"";position:absolute;inset:0;border-radius:25px;padding:3px;background:linear-gradient(135deg,#0154B1,#4facfe,#7b5cff,#0154B1);background-size:300% 300%;animation:cb-border-flow 6s ease infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;pointer-events:none;z-index:1;}'
     + '@keyframes cb-pop-in{from{opacity:0;transform:translateY(20px) scale(.96);}to{opacity:1;transform:none;}}'
     + '@keyframes cb-border-flow{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}'
-    + '.cb-card{width:420px;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.3);backdrop-filter:blur(8px) saturate(1.4);-webkit-backdrop-filter:blur(8px) saturate(1.4);box-shadow:0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 65px);height:760px;font-family:"Outfit",sans-serif;box-sizing:border-box;}'
+    + '.cb-card{width:360px;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.3);backdrop-filter:blur(8px) saturate(1.4);-webkit-backdrop-filter:blur(8px) saturate(1.4);box-shadow:0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 65px);height:635px;font-family:"Outfit",sans-serif;box-sizing:border-box;}'
     + '.cb-card *{box-sizing:border-box;}'
     + '.cb-header{background:linear-gradient(135deg,#0154B1 0%,#1a7fe8 100%);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}'
     + '.cb-user{display:flex;gap:11px;align-items:center;}'
@@ -261,15 +279,23 @@
     + '.cb-schedule:hover{filter:brightness(.92);}'
     + '#cb-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.45);z-index:2147483645;opacity:0;pointer-events:none;transition:opacity .25s ease;display:none;}'
     + '#cb-backdrop.cb-backdrop-on{opacity:1;pointer-events:all;}'
-    /* Large-desktop scaling: the 420px/760px base size (set above) already
-     * covers typical laptop screens, but on bigger monitors that same fixed
-     * size starts to look small and cramped relative to all the empty
-     * space around it. These two breakpoints only ever make the panel
-     * larger — never override width/height below 1440px — so laptops,
-     * tablets, and the mobile breakpoint further down are unaffected. */
-    + '@media (min-width:1440px){.cb-card{width:460px;height:820px;}}'
-    + '@media (min-width:1920px){.cb-card{width:500px;height:880px;}}'
-    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;}.cb-card{width:100%;height:100%;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
+    /* Mac-only desktop sizing: gated on html.cb-is-mac (real OS detection,
+     * see IS_MAC above), never on screen width — a Windows desktop at the
+     * exact same resolution as a MacBook must keep the original 360x635
+     * size untouched. Scoped further by min-width so it only enlarges on
+     * a MacBook's own larger screens, not on small external displays a
+     * Mac might be connected to. */
+    + 'html.cb-is-mac .cb-card{width:420px;height:760px;}'
+    + '@media (min-width:1440px){html.cb-is-mac .cb-card{width:460px;height:820px;}}'
+    + '@media (min-width:1920px){html.cb-is-mac .cb-card{width:500px;height:880px;}}'
+    /* width/height use !important specifically so this mobile override
+     * always wins regardless of selector specificity or OS — without it,
+     * the html.cb-is-mac Mac-only rules above (which have higher
+     * specificity than a plain .cb-card selector) would incorrectly win
+     * on a Mac browser resized down to mobile width (e.g. responsive
+     * testing), keeping the larger Mac desktop size instead of collapsing
+     * to the intended full-screen mobile layout. */
+    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;}.cb-card{width:100%!important;height:100%!important;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:65px;height:65px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
 
   function injectStyles() {
     if (!document.getElementById('cb-font-link')) {
