@@ -1,8 +1,11 @@
 import { getRelevantKnowledge, formatKnowledgeForPrompt } from './_lib/knowledge.js';
 
-const SYSTEM_PROMPT = `You are Alex, the official AI Assistant for The Demski Group.
+const SYSTEM_PROMPT = `You are Alex, a Demski Group assistant.
 
 Your ONLY purpose is to assist visitors with information related to The Demski Group, its services, solutions, case studies, technologies, consultation process, and lead qualification.
+
+## Your Job
+Your job is to understand the user's project and, over the course of a natural conversation, collect: the type of project they need, the problem they're trying to solve, their budget, their timeline, and their contact details (name, phone, email). Respond naturally to whatever the user actually says, in the order they bring it up, rather than forcing a fixed sequence. Guide the conversation toward booking a meeting once their need is understood. Use only The Demski Group's own context (this prompt and the knowledge base below) to answer, never outside/general knowledge unrelated to Demski.
 
 ## Core Identity
 You are a professional, friendly, knowledgeable business consultant representing The Demski Group.
@@ -69,6 +72,52 @@ Then collect: name, phone, email (one at a time, naturally).
 ## Ultimate Rule
 Always remain a Demski Group business assistant. Never act as a general AI. Redirect off-topic back to Demski services.`;
 
+// stepContext shape: { question: string, options: string[] }
+// Tells the model what qualification question is currently active (if
+// any) so it can decide whether the user's message already answered it,
+// without forcing the widget to fall back to a separate classifier call.
+function formatStepContext(stepContext) {
+  if (!stepContext || !stepContext.question) return '';
+  const optionsText = Array.isArray(stepContext.options) && stepContext.options.length
+    ? ' The options being offered as shortcuts are: ' + stepContext.options.map((o) => '"' + o + '"').join(', ') + '.'
+    : '';
+  return '\n\n## Current Qualification Question\n' +
+    'The widget is currently waiting on an answer to: "' + stepContext.question + '"' + optionsText +
+    ' Always answer/acknowledge what the user actually said first, naturally, like a real consultant would, before anything else. ' +
+    'Then decide which ONE of these three situations applies, and end your reply with exactly one machine-readable marker reflecting it, on its own at the very end, never described or explained in the visible text:\n' +
+    '1. Their message answers the current question and clearly maps to one of the listed options: end with [[STEP_ANSWERED:exact option text]], copied exactly as given above.\n' +
+    '2. Their message answers the current question in their own words but does not map to any listed option: end with [[STEP_ANSWERED:]] (empty).\n' +
+    '3. Their message does NOT answer the current question, but you did NOT ask your own new specific question in reply (e.g. you just answered an unrelated question, or made a general comment): end with [[STEP_NOT_ANSWERED]] — the widget will re-show the original option buttons since the current question is still open.\n' +
+    '4. Their message does NOT answer the current question, AND your reply itself asks the user something new and specific that needs a typed answer (e.g. asking for their name, phone, email, or any other specific detail you need next): end with [[REDIRECTED]] — the widget will wait for a typed reply to YOUR new question instead of showing the original option buttons, since showing them now would stack two unrelated questions at once.\n' +
+    'Always include exactly one of these markers, never more than one, never none.';
+}
+
+// Strips the [[STEP_ANSWERED:...]] / [[STEP_NOT_ANSWERED]] / [[REDIRECTED]]
+// marker the model was asked to append (see formatStepContext) and
+// converts it into { stepAnswered, matchedOption, redirected } the widget
+// can act on directly. stepAnswered/matchedOption/redirected are all null
+// when no stepContext was sent for this request — nothing to extract.
+function extractStepSignal(raw, hadStepContext) {
+  if (!hadStepContext) return { reply: raw.trim(), stepAnswered: null, matchedOption: null, redirected: null };
+  const answeredMatch = raw.match(/\[\[STEP_ANSWERED:([^\]]*)\]\]\s*$/i);
+  if (answeredMatch) {
+    const option = answeredMatch[1].trim();
+    return { reply: raw.replace(answeredMatch[0], '').trim(), stepAnswered: true, matchedOption: option || null, redirected: false };
+  }
+  const redirectedMatch = /\[\[REDIRECTED\]\]\s*$/i;
+  if (redirectedMatch.test(raw)) {
+    return { reply: raw.replace(redirectedMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: true };
+  }
+  const notAnsweredMatch = /\[\[STEP_NOT_ANSWERED\]\]\s*$/i;
+  if (notAnsweredMatch.test(raw)) {
+    return { reply: raw.replace(notAnsweredMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: false };
+  }
+  // Model didn't include a marker — fail safe by still showing the
+  // buttons (stepAnswered: false, redirected: false) so the conversation
+  // can't dead-end.
+  return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: false };
+}
+
 export default async function handler(req, res) {
   // CORS preflight: the widget may be served from a different origin than
   // this API (e.g. embedded via the standalone widget domain), which makes
@@ -91,7 +140,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
-  const { messages } = req.body;
+  const { messages, stepContext } = req.body;
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Invalid messages' });
   }
@@ -106,6 +155,13 @@ export default async function handler(req, res) {
     const relevantEntries = lastUserMessage ? getRelevantKnowledge(lastUserMessage.content) : [];
     const knowledgeBlock = formatKnowledgeForPrompt(relevantEntries);
 
+    // stepContext lets the widget ask, in addition to a normal reply,
+    // "did this message already answer the current qualification
+    // question?" — so the widget can skip re-showing that step's MCQ
+    // buttons when the user already answered it in their own words,
+    // instead of always showing them regardless of context.
+    const stepBlock = formatStepContext(stepContext);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -115,7 +171,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT + knowledgeBlock },
+          { role: 'system', content: SYSTEM_PROMPT + knowledgeBlock + stepBlock },
           ...messages,
         ],
         max_tokens: 300,
@@ -129,8 +185,9 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    const reply = (data.choices?.[0]?.message?.content || '').replace(/—/g, ',');
-    return res.status(200).json({ reply });
+    const raw = data.choices?.[0]?.message?.content || '';
+    const { reply, stepAnswered, matchedOption, redirected } = extractStepSignal(raw, !!stepContext);
+    return res.status(200).json({ reply: reply.replace(/—/g, ','), stepAnswered, matchedOption, redirected });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });

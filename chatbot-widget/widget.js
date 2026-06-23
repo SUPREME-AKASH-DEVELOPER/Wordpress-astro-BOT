@@ -83,6 +83,16 @@
   var idleInterval = 60000;
   var awaitingIdleResponse = false;
   var idleBubbleTimer = null;
+  /* The in-chat idle reminder is allowed to fire at most once per session —
+   * once shown (answered or not), it never fires again for this visitor. */
+  var idleReminderShown = false;
+
+  /* ── SESSION PERSISTENCE ──
+   * A plain page refresh would otherwise wipe chatHistory/lead/step since
+   * they're only ever held in memory. Saved/restored as one JSON blob so a
+   * visitor who refreshes (or closes and reopens the tab) picks up exactly
+   * where they left off instead of starting over. */
+  var SESSION_KEY = 'cb_session_v1';
 
   /* ── UTM CAPTURE ── */
   var urlP = {}, saved = {};
@@ -250,7 +260,7 @@
     + '.cb-schedule:hover{filter:brightness(.92);}'
     + '#cb-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.45);z-index:2147483645;opacity:0;pointer-events:none;transition:opacity .25s ease;display:none;}'
     + '#cb-backdrop.cb-backdrop-on{opacity:1;pointer-events:all;}'
-    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;height:100%;height:100dvh;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;}.cb-card{width:100%;height:100%;max-height:100vh;max-height:100dvh;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
+    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;}.cb-card{width:100%;height:100%;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
 
   function injectStyles() {
     if (!document.getElementById('cb-font-link')) {
@@ -360,6 +370,100 @@
      * instead of clicking a scripted button. */
     var chatHistory = [];
 
+    /* Snapshot of every rendered message bubble, in order, purely for
+     * replaying the transcript visually after a refresh — separate from
+     * chatHistory (which only holds the role/content pairs sent to
+     * OpenAI) since it also needs to know bot vs. user for rendering. */
+    var transcript = [];
+
+    function saveSession() {
+      try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          step: step,
+          lead: lead,
+          chatHistory: chatHistory,
+          transcript: transcript,
+          conversationStarted: conversationStarted,
+          savedAt: Date.now()
+        }));
+      } catch (e) { /* localStorage unavailable (private mode, quota) — degrade silently, in-memory state still works for this page load */ }
+    }
+
+    /* Sessions older than this are treated as abandoned/stale rather than
+     * resumed — avoids resurrecting a days-old half-finished conversation
+     * for a returning visitor who'd rather start fresh. */
+    var SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+    function loadSession() {
+      try {
+        var raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        var parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (!parsed.savedAt || Date.now() - parsed.savedAt > SESSION_MAX_AGE_MS) {
+          localStorage.removeItem(SESSION_KEY);
+          return null;
+        }
+        return parsed;
+      } catch (e) { return null; }
+    }
+
+    function clearSession() {
+      try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    }
+
+    /* Replays a saved session's transcript into the message thread (hidden
+     * behind the still-closed panel) and restores step/lead/chatHistory/
+     * conversationStarted, so a refreshed page picks up exactly where the
+     * visitor left off instead of starting over — without forcing the chat
+     * panel open on its own. conversationStarted being restored to true is
+     * what makes the next launcherClick() skip the teaser and go straight
+     * to toggleBot(), which opens the now-already-populated panel. Does
+     * NOT re-trigger botReply for the in-progress question (that text is
+     * already the last replayed bot bubble) — it only re-renders that
+     * step's button group so the visitor can keep going once they reopen. */
+    function restoreSession() {
+      var session = loadSession();
+      if (!session || !session.transcript || session.transcript.length === 0) return false;
+
+      isReplayingSession = true;
+      session.transcript.forEach(function (entry) {
+        if (entry.role === 'bot') addBotMsg(entry.html);
+        else if (entry.role === 'user') addUserMsg(entry.text);
+      });
+      isReplayingSession = false;
+
+      chatHistory = session.chatHistory || [];
+      Object.assign(lead, session.lead || {});
+      step = typeof session.step === 'number' ? session.step : step;
+      conversationStarted = !!session.conversationStarted;
+      transcript = session.transcript;
+
+      if (step >= 1) expandUI();
+
+      var noFollowUpWasOpen = session.transcript.some(function (e) {
+        return e.role === 'bot' && /feels harder than it should be/i.test(e.html || '');
+      });
+      if (noFollowUpWasOpen && step === 0) {
+        renderNoFollowUpButtons();
+      } else if (step === 1) {
+        showIntentOptions(lead.intent);
+      } else if (step === 0) {
+        renderStep0Buttons();
+      }
+      /* Steps 2+ (timeline/budget/notes/contact/final) intentionally don't
+       * re-render their own button group here — those steps' own botReply
+       * text is already the last replayed message, and re-invoking them
+       * would re-ask the question a second time. The visitor can just
+       * type their answer; handleInput() resumes from the restored step
+       * exactly like a live conversation would. */
+
+      document.getElementById('cb-welcome').style.display = 'none';
+      msgs.classList.remove('cb-body-hidden');
+      showScheduleBar();
+      return true;
+    }
+
     /* Guards against duplicate/concurrent AI calls (e.g. a double-click or
      * double-tap on send firing handleInput twice before the first request
      * resolves), which otherwise stacks near-identical AI replies. */
@@ -406,6 +510,8 @@
       }
     }
 
+    var isReplayingSession = false;
+
     function addBotMsg(html) {
       dedupeLastBotMsg(html);
       var w = document.createElement('div');
@@ -413,6 +519,7 @@
       w.setAttribute('style', WRAP_STYLE);
       w.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + html + '</div>';
       msgs.appendChild(w); scroll();
+      if (!isReplayingSession) { transcript.push({ role: 'bot', html: html }); saveSession(); }
     }
 
     function addUserMsg(text) {
@@ -423,6 +530,7 @@
       d.className = 'cb-user-msg';
       d.textContent = text;
       msgs.appendChild(d); scroll();
+      if (!isReplayingSession) { transcript.push({ role: 'user', text: text }); saveSession(); }
     }
 
     /* Inserts the teaser greeting question + the user's Yes/No reply at the very
@@ -485,28 +593,23 @@
       return offTopicKw.some(function (k) { return v.toLowerCase().indexOf(k) > -1; });
     }
 
-    /* Deterministic "is this a real question, not an MCQ answer attempt?"
-     * check — runs BEFORE the AI classifier so a genuine question never has
-     * to depend on the classifier correctly judging NONE vs OFF_TOPIC (that
-     * judgment call was getting it wrong for things like "have you ever
-     * worked with shopify", which the classifier was treating as a failed
-     * answer attempt instead of a real question). A question mark or a
-     * leading question/request word is enough on its own — MCQ answers are
-     * never phrased this way, so this can't misfire against a real pick. */
-    var QUESTION_LEAD_WORDS = /^(who|what|when|where|why|how|have|do|does|did|can|could|would|will|is|are|tell me|could you|would you)\b/i;
-    function isLikelyQuestion(v) {
-      var trimmed = v.trim();
-      if (trimmed.indexOf('?') > -1) return true;
-      return QUESTION_LEAD_WORDS.test(trimmed);
-    }
 
     /* ── AI CALL ──
-     * Used whenever the user types free text instead of clicking a button.
-     * Sends the running chatHistory to the /api/chat proxy (OpenAI GPT-4o-mini)
-     * and renders the reply like a normal bot message. The scripted step/
-     * lead-state machine is left untouched — askAI only supplies the
-     * conversational reply text; callers still drive step transitions. */
-    function askAI(userText, silent, onDone) {
+     * Used for every typed message (LLM-first: the model always sees and
+     * answers what the user actually said). Sends the running chatHistory
+     * to the /api/chat proxy (OpenAI GPT-4o-mini) and renders the reply
+     * like a normal bot message. When stepContext is passed (the current
+     * qualification question + its option shortcuts), the server also
+     * returns stepAnswered — true if the model judged the user's message
+     * to already answer that question, so the caller can skip re-showing
+     * redundant MCQ buttons instead of always showing them regardless of
+     * context. onDone receives (reply, stepAnswered, matchedOption,
+     * redirected) — redirected is true when the AI's reply itself asked a
+     * new specific question (e.g. for a name), meaning the caller should
+     * show NO buttons at all and just wait for the next typed message,
+     * rather than stacking the original MCQ options underneath. All three
+     * signal fields are null when no stepContext was supplied. */
+    function askAI(userText, silent, onDone, stepContext) {
       if (aiRequestInFlight) return;
       aiRequestInFlight = true;
       if (!silent) {
@@ -515,10 +618,13 @@
       showTyping();
       inputEl.disabled = true;
 
+      var body = { messages: chatHistory };
+      if (stepContext) body.stepContext = stepContext;
+
       fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatHistory })
+        body: JSON.stringify(body)
       })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -530,7 +636,7 @@
         addBotMsg(reply.replace(/\n/g, '<br>'));
         resetIdleTimer();
         setTimeout(function () { inputEl.focus(); }, 100);
-        if (onDone) onDone(reply);
+        if (onDone) onDone(reply, data.stepAnswered === true, data.matchedOption || null, data.redirected === true);
       })
       .catch(function () {
         aiRequestInFlight = false;
@@ -538,72 +644,10 @@
         inputEl.disabled = false;
         addBotMsg("Sorry, I'm having trouble connecting right now. Please call us at 406-936-3049 or email contact@demskigroup.com.");
         resetIdleTimer();
-        if (onDone) onDone(null);
+        if (onDone) onDone(null, false, null, false);
       });
     }
 
-    /* ── MCQ-FIRST FREE-TEXT CLASSIFIER ──
-     * The widget is MCQ-first: every scripted step shows its options as
-     * buttons. If a user types instead of tapping, we still try to keep
-     * them moving through the script rather than dropping into open AI
-     * chat — first via cheap local keyword matching, then (only if that's
-     * inconclusive) a single silent classification call to /api/chat that
-     * does NOT touch chatHistory or render as a visible bot message. */
-    function localKeywordMatch(text, options, keywordMap) {
-      var lower = text.toLowerCase();
-      for (var i = 0; i < options.length; i++) {
-        var opt = options[i];
-        var patterns = keywordMap[opt];
-        if (patterns && patterns.test(lower)) return opt;
-      }
-      return null;
-    }
-
-    /* onOffTopic is optional — callers that don't pass it keep the old
-     * behavior of treating OFF_TOPIC the same as NONE (clarify + re-show
-     * buttons). Callers that do pass it get a real AI answer routed back
-     * into the scripted flow instead of a clarification prompt. */
-    function classifyFreeText(text, options, onMatch, onNoMatch, onOffTopic) {
-      if (aiRequestInFlight) return;
-      aiRequestInFlight = true;
-      showTyping();
-      inputEl.disabled = true;
-
-      var prompt = 'The user was asked a question and given these exact options: ' +
-        options.map(function (o) { return '"' + o + '"'; }).join(', ') +
-        '. The user typed: "' + text + '". ' +
-        'Reply with ONLY the single option text that best matches their intent, copied exactly as given above, ' +
-        'if their answer is a vague, partial, or differently-worded match for one of the options. ' +
-        'If their message is a genuine question, an unrelated comment, or anything that is not an attempt to answer ' +
-        'with one of the given options at all, reply with exactly: OFF_TOPIC. ' +
-        'If it is an attempt to answer but none of the options reasonably fit, reply with exactly: NONE. ' +
-        'Do not explain, do not add punctuation.';
-
-      function finish(fn) {
-        aiRequestInFlight = false;
-        hideTyping();
-        inputEl.disabled = false;
-        fn();
-        setTimeout(function () { inputEl.focus(); }, 100);
-      }
-
-      fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          var reply = (data.reply || '').trim();
-          var matched = options.filter(function (o) { return o.toLowerCase() === reply.toLowerCase(); })[0];
-          finish(function () {
-            if (matched) { onMatch(matched); return; }
-            if (onOffTopic && reply.toUpperCase() === 'OFF_TOPIC') { onOffTopic(); return; }
-            onNoMatch();
-          });
-        })
-        .catch(function () { finish(onNoMatch); });
-    }
 
     /* The input bar is always visible once the chat is open (set in the
      * static markup) and must never be hidden again — hideInputBar is kept
@@ -628,7 +672,7 @@
 
     function scheduleIdleTimer() {
       clearTimeout(idleTimer);
-      if (step < 8) idleTimer = setTimeout(showIdleReminder, idleInterval);
+      if (step < 8 && !idleReminderShown) idleTimer = setTimeout(showIdleReminder, idleInterval);
     }
 
     function resetIdleTimer() {
@@ -639,16 +683,26 @@
       scheduleIdleTimer();
     }
 
+    /* Fires at most ONCE per session, and never while the user is actively
+     * engaged: input focused, or chat freshly interacted with (the timer
+     * is restarted from scratch by resetIdleTimer on every interaction, so
+     * by the time this fires the user has genuinely gone quiet for a full
+     * idleInterval). If the input happens to have focus right as the timer
+     * elapses, push it out a bit further rather than interrupting typing. */
     function showIdleReminder() {
-      if (step >= 8 || awaitingIdleResponse) return;
+      if (step >= 8 || awaitingIdleResponse || idleReminderShown) return;
+      if (document.activeElement === inputEl) {
+        idleTimer = setTimeout(showIdleReminder, 15000);
+        return;
+      }
+      idleReminderShown = true;
       awaitingIdleResponse = true;
-      idleInterval += 40000;
 
       /* Badge + shake + sound on the launcher only make sense while the
        * chat window is closed — skip them while the user has it open. */
       var leadBotEl = document.getElementById('lead-bot');
       var chatIsOpen = leadBotEl && leadBotEl.style.display === 'block';
-      var idleMsg = 'Hi, are you still there?';
+      var idleMsg = "If you'd like help with anything else, I'm here.";
       if (!chatIsOpen) {
         document.getElementById('cb-launcher-badge').classList.add('cb-badge-on');
         var idleLauncher = document.getElementById('bot-launcher');
@@ -663,7 +717,6 @@
       }
 
       removeIdleReminder();
-      hideInputBar();
       dedupeLastBotMsg(idleMsg);
       var wrap = document.createElement('div');
       wrap.id = IDLE_MSG_ID;
@@ -671,60 +724,8 @@
       wrap.setAttribute('style', WRAP_STYLE);
       wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + idleMsg + '</div>';
       msgs.appendChild(wrap); scroll();
-      showIdleButtons();
       awaitingIdleResponse = false;
-      idleTimer = setTimeout(showIdleReminder, idleInterval);
-    }
-
-    function showIdleButtons() {
-      var old = document.getElementById(IDLE_BTNS_ID); if (old) old.remove();
-      var div = document.createElement('div');
-      div.className = 'cb-qbtns cb-grid'; div.id = IDLE_BTNS_ID;
-      var yes = document.createElement('button'); yes.textContent = 'Yes, still here!';
-      yes.onclick = function () { answerIdleReminder(); addUserMsg('Yes, still here!'); resumeStep(); };
-      var no = document.createElement('button'); no.textContent = "No, I'm done";
-      no.onclick = function () {
-        answerIdleReminder(); addUserMsg("No, I'm done");
-        awaitingIdleResponse = false; clearTimeout(idleTimer);
-        botReply('No problem! Feel free to come back anytime.');
-      };
-      div.appendChild(yes); div.appendChild(no); msgs.appendChild(div); scrollToLatestBotMsg();
-    }
-
-    /* Marks the idle question as answered: drops the button row but keeps
-     * the "Hi, are you still there?" bubble permanently in the thread. The
-     * id is cleared so a later showIdleReminder()/removeIdleReminder() call
-     * can't mistake this already-answered bubble for its own active one. */
-    function answerIdleReminder() {
-      var d = document.getElementById(IDLE_BTNS_ID); if (d) d.remove();
-      var b = document.getElementById(IDLE_MSG_ID);
-      if (b) b.removeAttribute('id');
-    }
-
-    function resumeStep() {
-      awaitingIdleResponse = false; resetIdleTimer();
-      showInputBar();
-      /* step alone doesn't track every sub-state (e.g. the "No" teaser's
-       * pain-point buttons run entirely at step === 0) — check which MCQ
-       * block was actually on screen before the idle reminder hid it, so
-       * resuming never dead-ends into a plain text message. */
-      if (document.getElementById('cb-no-followup')) {
-        botReply("No problem! Which of these feels closest?", function () { renderNoFollowUpButtons(); });
-        return;
-      }
-      if (step === 1) { botReply('No problem! What type of project is it?', function () { showIntentOptions(lead.intent); }); return; }
-      if (step === 2) { showTimelineStep(); return; }
-      if (step === 3) { showBudgetStep(); return; }
-      if (step === 4) { showNotesStep(); return; }
-      if (step === 5) { botReply("What's your name?"); return; }
-      if (step === 6) { botReply("What's the best phone number to reach you?"); return; }
-      if (step === 7) { botReply("What's the best email to reach you?"); return; }
-      if (step === 8) { botReply('Our team already has your details and will be in touch shortly!'); return; }
-      /* step === 0 with no recognizable in-progress MCQ block (e.g. the
-       * very first message, before any option was picked) — re-ask the
-       * opening qualification question with its MCQs instead of dropping
-       * into free text. */
-      botReply('No problem! What kind of project do you need help bringing to life?', function () { renderStep0Buttons(); });
+      /* One-time only — no follow-up timer is scheduled after this. */
     }
 
     /* ── EXPAND UI ── */
@@ -866,7 +867,9 @@
     }
 
     /* Auto-open after the badge has been ignored for 10s. Skips the normal
-     * welcome flow entirely and goes straight to the "still there?" nudge. */
+     * welcome flow entirely and goes straight to a soft engagement nudge —
+     * no conversation has happened yet at this point, so this is an invite
+     * to start one, not a re-engagement check-in. */
     function autoOpenWithNudge() {
       if (expanded || teaserFlowDone) return;
       teaserFlowDone = true;
@@ -884,9 +887,8 @@
         showScheduleBar();
         resetIdleTimer();
         msgs.innerHTML = '';
-        hideInputBar();
-        addBotMsg('Hi, are you still there?');
-        showIdleButtons();
+        addBotMsg("If you'd like help with anything, I'm here.");
+        showInputBar();
       }, 200);
     }
 
@@ -1228,6 +1230,10 @@
         ? "Great! We're opening the calendar now. Pick a time that works for you. A confirmation will also be sent to " + lead.email + '!'
         : 'Perfect! We\'ll send everything over to ' + lead.email + ' shortly. Talk soon!');
       submitLead();
+      /* Conversation reached its natural end (lead captured) — nothing
+       * left to resume, so don't keep resurrecting this session on a
+       * later visit. */
+      clearSession();
     }
 
     /* ── SUBMIT ── */
@@ -1283,176 +1289,81 @@
       if (aiRequestInFlight) return;
       var val = inputEl.value.trim(); if (!val) return;
       cancelTeaserFlow();
-      if (awaitingIdleResponse) {
-        answerIdleReminder(); addUserMsg(val); inputEl.value = ''; resumeStep(); return;
-      }
       addUserMsg(val); inputEl.value = ''; resetIdleTimer();
 
-      /* "No, not looking" teaser follow-up: MCQ-first like every other step.
-       * A genuine question always goes straight to a real AI reply first —
-       * never let the classifier guess whether a question is a failed
-       * answer attempt. Only non-question typed answers try local keywords,
-       * then the AI classify call against this step's own 4 options. */
+      /* LLM-first: every typed message on an MCQ step is sent straight to
+       * the real AI with stepContext describing the current question and
+       * its option shortcuts. The model answers/acknowledges what the user
+       * actually said, then signals back whether that message already
+       * answered the question (stepAnswered) and which option it maps to
+       * (matchedOption, if any). Buttons are only re-shown when the
+       * question is still genuinely unanswered AND the AI's own reply
+       * didn't just ask its own new question (redirected) — never stacking
+       * the original MCQ on top of a different question that needs an
+       * answer first. */
       var noFollowUpDiv = document.getElementById('cb-no-followup');
       if (noFollowUpDiv) {
-        if (isLikelyQuestion(val)) {
-          noFollowUpDiv.remove();
-          askAI(val, false, function () {
-            botReply("By the way, which of these feels closest to what you're dealing with?", function () {
-              renderNoFollowUpButtons();
-            });
-          });
-          return;
-        }
-        var nfKw = {
-          'Managing data': /managing data|messy data|disorganized data|spreadsheet|data tracking/,
-          'Customer interactions': /customer (interactions|service|support)|client (interactions|communication)/,
-          'Team coordination': /team coordination|staff coordination|team communication|coordinating (my|our) team/,
-          'Nothing really': /^nothing really$|^nothing$|^none$|not really|^n\/a$/
-        };
-        var nfMatch = localKeywordMatch(val, NO_FOLLOWUP_OPTS, nfKw);
-        if (nfMatch) { noFollowUpDiv.remove(); selectNoFollowUp(nfMatch); return; }
-        classifyFreeText(val, NO_FOLLOWUP_OPTS, function (matched) {
-          noFollowUpDiv.remove(); selectNoFollowUp(matched);
-        }, function () {
-          botReply("Just to make sure I capture this right, which of these fits best?", function () {
+        noFollowUpDiv.remove();
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
+          if (stepAnswered) {
+            selectNoFollowUp(matchedOption || val);
+          } else if (!redirected) {
             renderNoFollowUpButtons();
-          });
-        }, function () {
-          noFollowUpDiv.remove();
-          askAI(val, false, function () { renderNoFollowUpButtons(); });
-        });
+          }
+          /* redirected: the AI's own reply already asked something new and
+           * specific (e.g. for a name) — show no buttons, just wait for the
+           * next typed message instead of stacking a second question. */
+        }, { question: "What's one thing in your business that feels harder than it should be?", options: NO_FOLLOWUP_OPTS });
         return;
       }
 
-      /* Step 0: a genuine question always goes straight to a real AI reply
-       * first. Otherwise try keyword match, then AI classify, with the
-       * classifier's own OFF_TOPIC detection as a fallback safety net. */
       if (step === 0) {
-        if (isLikelyQuestion(val)) {
-          askAI(val, false, function () {
-            botReply("By the way, what kind of project did you have in mind?", function () { renderStep0Buttons(); });
-          });
-          return;
-        }
-        var lower = val.toLowerCase();
-        var intentOpts0 = ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'];
-        var intentGuess = null;
-        if (/startup|app idea|new product|mvp|launch/.test(lower)) intentGuess = 'New startup or app idea';
-        else if (/business|company|software|workflow|automate/.test(lower)) intentGuess = 'Software for my business';
-        else if (/market|seo|ads|traffic|social|leads/.test(lower)) intentGuess = 'Digital marketing help';
-        else if (/explor|curious|just looking|browsing/.test(lower)) intentGuess = 'Just exploring';
-        if (intentGuess) { step1Handler(intentGuess, true); return; }
-        classifyFreeText(val, intentOpts0, function (matched) {
-          step1Handler(matched, true);
-        }, function () {
-          botReply("Just to make sure I capture this right, which of these fits best?", function () {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
+          if (stepAnswered) {
+            step1Handler(matchedOption || val, true);
+          } else if (!redirected) {
             renderStep0Buttons();
-          });
-        }, function () {
-          askAI(val, false, function () { renderStep0Buttons(); });
-        });
+          }
+        }, { question: 'What kind of project do you need help bringing to life?', options: ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'] });
         return;
       }
 
-      /* Steps 1-3 are MCQ-first: a typed answer first tries to match one of
-       * the step's own options (local keywords, then a silent AI classify
-       * call) so the flow still advances like a tap would. A vague but
-       * on-topic answer gets a clarifying re-show of the buttons; a genuine
-       * off-script question/comment gets routed to a real AI reply (with
-       * full chatHistory) before the buttons reappear. */
       if (step === 1) {
         var el = document.getElementById('cb-intent'); if (el) el.remove();
-        if (isLikelyQuestion(val)) {
-          askAI(val, false, function () {
-            botReply("By the way, which of these best describes what you need?", function () { showIntentOptions(lead.intent); });
-          });
-          return;
-        }
         var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
-        var intentDetailKw = {
-          'Mobile App': /mobile app|ios app|android app|build.{0,10}\bapp\b/,
-          'Web App': /web app|website app|web-based/,
-          'SaaS Platform': /saas|subscription platform|subscription product/,
-          'eCommerce': /ecommerce|e-commerce|online store|online shop|sell online|sell products online/,
-          'Automate Workflows': /automat(e|ing|ion).{0,15}workflow|workflow automat/,
-          'Customer Management': /\bcrm\b|customer management|client management/,
-          'Reporting & Analytics': /reporting tool|analytics dashboard|data dashboard/,
-          'Employee Tools': /employee tool|staff tool|hr tool/,
-          'Increase Website Traffic': /increase.{0,10}traffic|more (website )?traffic|drive traffic/,
-          'Generate More Leads': /generate.{0,15}lead|more leads|lead generation/,
-          'Social Media Growth': /social media (growth|marketing)|grow.{0,10}social media/,
-          'Paid Advertising': /paid ads|paid advertising|ppc campaign|run ads/,
-          'Planning a Future Project': /planning a (future )?project|future project/,
-          'Comparing Vendors': /comparing vendors|shopping around|comparing (developers|companies|agencies)/,
-          'Learning About Tech': /learning about (tech|technology)|just researching/,
-          'Just Curious': /just curious|just looking around/
-        };
-        var localMatch1 = localKeywordMatch(val, intentDetailOpts, intentDetailKw);
-        if (localMatch1) { lead.intent_detail = localMatch1; step = 2; showTimelineStep(); return; }
-        classifyFreeText(val, intentDetailOpts, function (matched) {
-          lead.intent_detail = matched; step = 2; showTimelineStep();
-        }, function () {
-          botReply("Just to make sure I capture this right, which of these fits best?", function () { showIntentOptions(lead.intent); });
-        }, function () {
-          askAI(val, false, function () { showIntentOptions(lead.intent); });
-        });
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
+          if (stepAnswered) {
+            lead.intent_detail = matchedOption || val; step = 2; showTimelineStep();
+          } else if (!redirected) {
+            showIntentOptions(lead.intent);
+          }
+        }, { question: 'Can you tell me a bit more about what kind of ' + (lead.intent || 'project') + ' you need?', options: intentDetailOpts });
         return;
       }
 
       if (step === 2) {
         var elT = document.getElementById('cb-timeline'); if (elT) elT.remove();
-        if (isLikelyQuestion(val)) {
-          askAI(val, false, function () {
-            botReply("By the way, when are you hoping to go live?", function () { showTimelineStep(); });
-          });
-          return;
-        }
         var timelineOpts = ['ASAP', '1-3 months', '3-6 months', '6+ months', 'Not sure yet'];
-        var timelineKw = {
-          'ASAP': /asap|right away|immediately|urgent|now\b/,
-          '1-3 months': /1-3|1 to 3|one to three|next (month|quarter)|few months/,
-          '3-6 months': /3-6|3 to 6|three to six/,
-          '6+ months': /6\+|6 months|six months|later this year|next year/,
-          'Not sure yet': /not sure yet|no idea yet|don't know yet|still undecided|flexible (on|with) (timing|timeline|budget)/
-        };
-        var localMatch2 = localKeywordMatch(val, timelineOpts, timelineKw);
-        if (localMatch2) { lead.timeline = localMatch2; showBudgetStep(); return; }
-        classifyFreeText(val, timelineOpts, function (matched) {
-          lead.timeline = matched; showBudgetStep();
-        }, function () {
-          botReply("Just to make sure I capture this right, which of these fits best?", function () { showTimelineStep(); });
-        }, function () {
-          askAI(val, false, function () { showTimelineStep(); });
-        });
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
+          if (stepAnswered) {
+            lead.timeline = matchedOption || val; showBudgetStep();
+          } else if (!redirected) {
+            showTimelineStep();
+          }
+        }, { question: 'When would you like to go live?', options: timelineOpts });
         return;
       }
 
       if (step === 3) {
         var elB = document.getElementById('cb-budget'); if (elB) elB.remove();
-        if (isLikelyQuestion(val)) {
-          askAI(val, false, function () {
-            botReply("By the way, do you have a budget range in mind for this project?", function () { showBudgetStep(); });
-          });
-          return;
-        }
         var budgetOpts = ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'];
-        var budgetKw = {
-          'Under $10k': /under.?10|less than.?10|below.?10/,
-          '$10k - $25k': /10.?(k|000).{0,5}25|between 10 and 25/,
-          '$25k - $50k': /25.?(k|000).{0,5}50|between 25 and 50/,
-          '$50k+': /50.?(k|000)\+|over.?50|more than.?50|above.?50/,
-          'Not sure yet': /not sure yet|no idea yet|don't know yet|still undecided|flexible (on|with) (timing|timeline|budget)/
-        };
-        var localMatch3 = localKeywordMatch(val, budgetOpts, budgetKw);
-        if (localMatch3) { lead.budget = localMatch3; showNotesStep(); return; }
-        classifyFreeText(val, budgetOpts, function (matched) {
-          lead.budget = matched; showNotesStep();
-        }, function () {
-          botReply("Just to make sure I capture this right, which of these fits best?", function () { showBudgetStep(); });
-        }, function () {
-          askAI(val, false, function () { showBudgetStep(); });
-        });
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected) {
+          if (stepAnswered) {
+            lead.budget = matchedOption || val; showNotesStep();
+          } else if (!redirected) {
+            showBudgetStep();
+          }
+        }, { question: 'Do you have a budget range in mind for this project?', options: budgetOpts });
         return;
       }
 
@@ -1506,6 +1417,11 @@
         btn.onclick = function () { step1Handler(btn.getAttribute('data-step1')); };
       })(s1btns[i]);
     }
+
+    /* Restore a prior session (if any) before the launcher/teaser flow
+     * decides what to show — must run before launch() so a returning
+     * mid-conversation visitor never sees the teaser card flash in. */
+    restoreSession();
 
     /* ── LAUNCH ── */
     function launch() {
