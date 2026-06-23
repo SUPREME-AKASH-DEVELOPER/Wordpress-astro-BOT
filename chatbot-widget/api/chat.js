@@ -89,7 +89,7 @@ function formatStepContext(stepContext) {
     '2. Their message answers the current question in their own words but does not map to any listed option: end with [[STEP_ANSWERED:]] (empty).\n' +
     '3. Their message does NOT answer the current question, but you did NOT ask your own new specific question in reply (e.g. you just answered an unrelated question, or made a general comment): end with [[STEP_NOT_ANSWERED]] — the widget will re-show the original option buttons since the current question is still open.\n' +
     '4. Their message does NOT answer the current question, AND your reply itself asks the user something new and specific that needs a typed answer (e.g. asking for their name, phone, email, or any other specific detail you need next): end with [[REDIRECTED]] — the widget will wait for a typed reply to YOUR new question instead of showing the original option buttons, since showing them now would stack two unrelated questions at once.\n' +
-    'Always include exactly one of these markers, never more than one, never none.';
+    'This marker is REQUIRED on every single reply while a qualification question is active, with no exceptions, even for short replies, off-topic answers, or replies that just answer a factual question. Forgetting it causes the widget to show the wrong buttons to the user, which is a visible bug. Double-check before finishing your reply that it ends with exactly one of [[STEP_ANSWERED:...]], [[STEP_NOT_ANSWERED]], or [[REDIRECTED]].';
 }
 
 // Strips the [[STEP_ANSWERED:...]] / [[STEP_NOT_ANSWERED]] / [[REDIRECTED]]
@@ -112,10 +112,16 @@ function extractStepSignal(raw, hadStepContext) {
   if (notAnsweredMatch.test(raw)) {
     return { reply: raw.replace(notAnsweredMatch, '').trim(), stepAnswered: false, matchedOption: null, redirected: false };
   }
-  // Model didn't include a marker — fail safe by still showing the
-  // buttons (stepAnswered: false, redirected: false) so the conversation
-  // can't dead-end.
-  return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: false };
+  // Model didn't include a marker at all — happens often enough with
+  // gpt-4o-mini that the widget cannot depend on the marker being present.
+  // The bias here is deliberately one-directional: when we can't prove the
+  // original question is still open, default to NOT showing the buttons.
+  // Re-showing stale MCQs under an unrelated answer is the visible,
+  // embarrassing bug; silently waiting for one extra typed message instead
+  // of showing buttons is not. Buttons only ever reappear when the model
+  // explicitly confirms the question is still unanswered via
+  // [[STEP_NOT_ANSWERED]] — never as a blind default.
+  return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: true };
 }
 
 export default async function handler(req, res) {

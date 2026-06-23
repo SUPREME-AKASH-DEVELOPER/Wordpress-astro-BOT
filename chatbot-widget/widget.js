@@ -28,7 +28,7 @@
     }
   })();
 
-  var AVATAR_URL    = scriptAttr('data-avatar', BASE_URL + 'avatar-alex.webp');
+  var AVATAR_URL    = scriptAttr('data-avatar', BASE_URL + 'avatar-alex.png');
   var AVATAR_FB     = scriptAttr('data-avatar-fallback', AVATAR_URL);
   var CALENDLY_URL  = scriptAttr('data-calendly', 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3loQplPyCXe28FPP0trIgOCmhJqwKCXka1x3uCkblaAFtklpetKpkyi6glNBGxVR8jpOQenySG');
   var BOT_NAME      = scriptAttr('data-bot-name', 'Alex');
@@ -468,6 +468,7 @@
      * double-tap on send firing handleInput twice before the first request
      * resolves), which otherwise stacks near-identical AI replies. */
     var aiRequestInFlight = false;
+    var handleInputInFlight = false;
 
     /* Derive API endpoint from widget.js src — same origin as the widget */
     var API_URL = (function () {
@@ -499,27 +500,39 @@
      * reminder/auto-open) replaces the old one instead of stacking a
      * duplicate. Reads the DOM directly so it also catches bubbles built
      * by other code paths (like the idle reminder), not just addBotMsg. */
-    function dedupeLastBotMsg(html) {
+    /* Bot message text (AI replies, knowledge-base content, hardcoded
+     * strings) is never trusted as markup — escape it to text first, then
+     * reintroduce ONLY line breaks. This is the single chokepoint every bot
+     * message passes through, so a payload like <script>/<img onerror>
+     * coming back from the model (e.g. echoed/quoted user input) is
+     * rendered as inert text instead of executing. */
+    function escapeHtml(text) {
+      var d = document.createElement('div');
+      d.textContent = text == null ? '' : String(text);
+      return d.innerHTML;
+    }
+    function safeBotHtml(text) {
+      return escapeHtml(text).replace(/\n/g, '<br>');
+    }
+
+    function dedupeLastBotMsg(safeHtml) {
       var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
       var last = wraps[wraps.length - 1];
       var lastBubble = last && last.querySelector('.cb-bot-msg');
-      if (lastBubble) {
-        var probe = document.createElement('div');
-        probe.innerHTML = html;
-        if (lastBubble.innerHTML === probe.innerHTML) last.remove();
-      }
+      if (lastBubble && lastBubble.innerHTML === safeHtml) last.remove();
     }
 
     var isReplayingSession = false;
 
-    function addBotMsg(html) {
-      dedupeLastBotMsg(html);
+    function addBotMsg(text) {
+      var safeHtml = safeBotHtml(text);
+      dedupeLastBotMsg(safeHtml);
       var w = document.createElement('div');
       w.className = 'cb-bot-msg-wrap';
       w.setAttribute('style', WRAP_STYLE);
-      w.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + html + '</div>';
+      w.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + safeHtml + '</div>';
       msgs.appendChild(w); scroll();
-      if (!isReplayingSession) { transcript.push({ role: 'bot', html: html }); saveSession(); }
+      if (!isReplayingSession) { transcript.push({ role: 'bot', html: text }); saveSession(); }
     }
 
     function addUserMsg(text) {
@@ -633,7 +646,7 @@
         inputEl.disabled = false;
         var reply = (data.reply || "I'm having a little trouble right now. Please try again or call us at 406-936-3049.").replace(/—/g, ',');
         chatHistory.push({ role: 'assistant', content: reply });
-        addBotMsg(reply.replace(/\n/g, '<br>'));
+        addBotMsg(reply);
         resetIdleTimer();
         setTimeout(function () { inputEl.focus(); }, 100);
         if (onDone) onDone(reply, data.stepAnswered === true, data.matchedOption || null, data.redirected === true);
@@ -717,12 +730,12 @@
       }
 
       removeIdleReminder();
-      dedupeLastBotMsg(idleMsg);
+      dedupeLastBotMsg(safeBotHtml(idleMsg));
       var wrap = document.createElement('div');
       wrap.id = IDLE_MSG_ID;
       wrap.className = 'cb-bot-msg-wrap';
       wrap.setAttribute('style', WRAP_STYLE);
-      wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + idleMsg + '</div>';
+      wrap.innerHTML = avImg() + '<div class="cb-bot-msg" style="' + BOT_STYLE + '">' + safeBotHtml(idleMsg) + '</div>';
       msgs.appendChild(wrap); scroll();
       awaitingIdleResponse = false;
       /* One-time only — no follow-up timer is scheduled after this. */
@@ -1286,10 +1299,20 @@
 
     /* ── INPUT HANDLER ── */
     function handleInput() {
-      if (aiRequestInFlight) return;
+      if (aiRequestInFlight || handleInputInFlight) return;
       var val = inputEl.value.trim(); if (!val) return;
+      /* Synchronous re-entrancy lock, separate from aiRequestInFlight
+       * (which askAI sets later, after addUserMsg already ran). Enter
+       * keypress + a Send-button click landing in the same tick — or a
+       * user mashing Enter — would otherwise both pass the check above
+       * and double-submit the same message before askAI ever sets its own
+       * flag. Cleared once askAI's request actually starts (or immediately
+       * if this submission never reaches askAI, e.g. step 4-7 free text). */
+      handleInputInFlight = true;
+      setTimeout(function () { handleInputInFlight = false; }, 0);
+      inputEl.value = '';
       cancelTeaserFlow();
-      addUserMsg(val); inputEl.value = ''; resetIdleTimer();
+      addUserMsg(val); resetIdleTimer();
 
       /* LLM-first: every typed message on an MCQ step is sent straight to
        * the real AI with stepContext describing the current question and
