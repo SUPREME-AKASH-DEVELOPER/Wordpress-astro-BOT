@@ -544,7 +544,11 @@
       return null;
     }
 
-    function classifyFreeText(text, options, onMatch, onNoMatch) {
+    /* onOffTopic is optional — callers that don't pass it keep the old
+     * behavior of treating OFF_TOPIC the same as NONE (clarify + re-show
+     * buttons). Callers that do pass it get a real AI answer routed back
+     * into the scripted flow instead of a clarification prompt. */
+    function classifyFreeText(text, options, onMatch, onNoMatch, onOffTopic) {
       if (aiRequestInFlight) return;
       aiRequestInFlight = true;
       showTyping();
@@ -553,8 +557,12 @@
       var prompt = 'The user was asked a question and given these exact options: ' +
         options.map(function (o) { return '"' + o + '"'; }).join(', ') +
         '. The user typed: "' + text + '". ' +
-        'Reply with ONLY the single option text that best matches their intent, copied exactly as given above. ' +
-        'If none of the options reasonably match, reply with exactly: NONE. Do not explain, do not add punctuation.';
+        'Reply with ONLY the single option text that best matches their intent, copied exactly as given above, ' +
+        'if their answer is a vague, partial, or differently-worded match for one of the options. ' +
+        'If their message is a genuine question, an unrelated comment, or anything that is not an attempt to answer ' +
+        'with one of the given options at all, reply with exactly: OFF_TOPIC. ' +
+        'If it is an attempt to answer but none of the options reasonably fit, reply with exactly: NONE. ' +
+        'Do not explain, do not add punctuation.';
 
       function finish(fn) {
         aiRequestInFlight = false;
@@ -573,7 +581,11 @@
         .then(function (data) {
           var reply = (data.reply || '').trim();
           var matched = options.filter(function (o) { return o.toLowerCase() === reply.toLowerCase(); })[0];
-          finish(function () { matched ? onMatch(matched) : onNoMatch(); });
+          finish(function () {
+            if (matched) { onMatch(matched); return; }
+            if (onOffTopic && reply.toUpperCase() === 'OFF_TOPIC') { onOffTopic(); return; }
+            onNoMatch();
+          });
         })
         .catch(function () { finish(onNoMatch); });
     }
@@ -1052,6 +1064,7 @@
       expandUI();
       var s1 = document.getElementById('cb-step1'); if (s1) s1.remove();
       if (!skipUserMsg) addUserMsg(val);
+      chatHistory.push({ role: 'user', content: val });
       lead.intent = val; step = 1; resetIdleTimer();
       var followUp = {
         'New startup or app idea':  'Love it! Tell me more, what kind of app or product are you thinking about?',
@@ -1059,7 +1072,9 @@
         'Digital marketing help':   'Nice! What are you hoping to improve: traffic, leads, or sales?',
         'Just exploring':           "That's totally fine! Can you tell me a bit about what you have in mind?"
       };
-      botReply(followUp[val] || "Can you tell me a bit about it or if you already have a design in mind?", function () {
+      var followUpMsg = followUp[val] || "Can you tell me a bit about it or if you already have a design in mind?";
+      chatHistory.push({ role: 'assistant', content: followUpMsg });
+      botReply(followUpMsg, function () {
         showIntentOptions(val);
       });
     }
@@ -1074,6 +1089,7 @@
         b.onclick = function () {
           var el = document.getElementById('cb-intent'); if (el) el.remove();
           addUserMsg(o); lead.intent_detail = o;
+          chatHistory.push({ role: 'user', content: o });
           step = 2;
           showTimelineStep();
         };
@@ -1092,6 +1108,7 @@
     /* ── TIMELINE ── */
     function showTimelineStep() {
       step = 2; resetIdleTimer();
+      chatHistory.push({ role: 'assistant', content: 'When would you like to go live?' });
       botReply('When would you like to go live?', function () {
         showInputBar();
         inputEl.placeholder = 'Type your answer...';
@@ -1102,6 +1119,7 @@
           btn.onclick = function () {
             var el = document.getElementById('cb-timeline'); if (el) el.remove();
             addUserMsg(tv); lead.timeline = tv;
+            chatHistory.push({ role: 'user', content: tv });
             showBudgetStep();
           };
           div.appendChild(btn);
@@ -1117,6 +1135,7 @@
     /* ── BUDGET ── */
     function showBudgetStep() {
       step = 3; resetIdleTimer();
+      chatHistory.push({ role: 'assistant', content: 'Do you have a budget range in mind for this project?' });
       botReply('Do you have a budget range in mind for this project?', function () {
         showInputBar();
         inputEl.placeholder = 'Type your answer...';
@@ -1127,6 +1146,7 @@
           btn.onclick = function () {
             var el = document.getElementById('cb-budget'); if (el) el.remove();
             addUserMsg(bv); lead.budget = bv;
+            chatHistory.push({ role: 'user', content: bv });
             showNotesStep();
           };
           div.appendChild(btn);
@@ -1255,9 +1275,10 @@
 
       /* "No, not looking" teaser follow-up: MCQ-first like every other step.
        * A typed answer first tries local keywords, then a silent AI
-       * classify call against this step's own 4 options. Only when nothing
-       * matches do we clarify and re-show the same buttons — never drop
-       * into open AI chat, same rule as steps 1-3. */
+       * classify call against this step's own 4 options. If it's a vague
+       * but on-topic answer, clarify and re-show the same buttons. If it's
+       * a genuine off-script question/comment, answer it with a real AI
+       * reply, then re-show the buttons so the flow continues. */
       var noFollowUpDiv = document.getElementById('cb-no-followup');
       if (noFollowUpDiv) {
         var nfKw = {
@@ -1274,13 +1295,17 @@
           botReply("Just to make sure I capture this right, which of these fits best?", function () {
             renderNoFollowUpButtons();
           });
+        }, function () {
+          noFollowUpDiv.remove();
+          askAI(val, false, function () { renderNoFollowUpButtons(); });
         });
         return;
       }
 
       /* Step 0: user types before picking an option — try keyword match,
-       * then AI classify, then clarify + re-show the same buttons. MCQ-first:
-       * never drop into open AI chat just because nothing matched. */
+       * then AI classify. A vague but on-topic answer gets a clarifying
+       * re-show of the buttons; a genuine off-script question gets a real
+       * AI reply before the buttons reappear. */
       if (step === 0) {
         var lower = val.toLowerCase();
         var intentOpts0 = ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'];
@@ -1296,14 +1321,18 @@
           botReply("Just to make sure I capture this right, which of these fits best?", function () {
             renderStep0Buttons();
           });
+        }, function () {
+          askAI(val, false, function () { renderStep0Buttons(); });
         });
         return;
       }
 
       /* Steps 1-3 are MCQ-first: a typed answer first tries to match one of
        * the step's own options (local keywords, then a silent AI classify
-       * call) so the flow still advances like a tap would. Only when
-       * nothing matches do we ask for clarification and re-show buttons. */
+       * call) so the flow still advances like a tap would. A vague but
+       * on-topic answer gets a clarifying re-show of the buttons; a genuine
+       * off-script question/comment gets routed to a real AI reply (with
+       * full chatHistory) before the buttons reappear. */
       if (step === 1) {
         var el = document.getElementById('cb-intent'); if (el) el.remove();
         var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
@@ -1331,6 +1360,8 @@
           lead.intent_detail = matched; step = 2; showTimelineStep();
         }, function () {
           botReply("Just to make sure I capture this right, which of these fits best?", function () { showIntentOptions(lead.intent); });
+        }, function () {
+          askAI(val, false, function () { showIntentOptions(lead.intent); });
         });
         return;
       }
@@ -1351,6 +1382,8 @@
           lead.timeline = matched; showBudgetStep();
         }, function () {
           botReply("Just to make sure I capture this right, which of these fits best?", function () { showTimelineStep(); });
+        }, function () {
+          askAI(val, false, function () { showTimelineStep(); });
         });
         return;
       }
@@ -1371,6 +1404,8 @@
           lead.budget = matched; showNotesStep();
         }, function () {
           botReply("Just to make sure I capture this right, which of these fits best?", function () { showBudgetStep(); });
+        }, function () {
+          askAI(val, false, function () { showBudgetStep(); });
         });
         return;
       }
