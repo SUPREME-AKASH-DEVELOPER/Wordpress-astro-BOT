@@ -485,6 +485,21 @@
       return offTopicKw.some(function (k) { return v.toLowerCase().indexOf(k) > -1; });
     }
 
+    /* Deterministic "is this a real question, not an MCQ answer attempt?"
+     * check — runs BEFORE the AI classifier so a genuine question never has
+     * to depend on the classifier correctly judging NONE vs OFF_TOPIC (that
+     * judgment call was getting it wrong for things like "have you ever
+     * worked with shopify", which the classifier was treating as a failed
+     * answer attempt instead of a real question). A question mark or a
+     * leading question/request word is enough on its own — MCQ answers are
+     * never phrased this way, so this can't misfire against a real pick. */
+    var QUESTION_LEAD_WORDS = /^(who|what|when|where|why|how|have|do|does|did|can|could|would|will|is|are|tell me|could you|would you)\b/i;
+    function isLikelyQuestion(v) {
+      var trimmed = v.trim();
+      if (trimmed.indexOf('?') > -1) return true;
+      return QUESTION_LEAD_WORDS.test(trimmed);
+    }
+
     /* ── AI CALL ──
      * Used whenever the user types free text instead of clicking a button.
      * Sends the running chatHistory to the /api/chat proxy (OpenAI GPT-4o-mini)
@@ -1274,13 +1289,21 @@
       addUserMsg(val); inputEl.value = ''; resetIdleTimer();
 
       /* "No, not looking" teaser follow-up: MCQ-first like every other step.
-       * A typed answer first tries local keywords, then a silent AI
-       * classify call against this step's own 4 options. If it's a vague
-       * but on-topic answer, clarify and re-show the same buttons. If it's
-       * a genuine off-script question/comment, answer it with a real AI
-       * reply, then re-show the buttons so the flow continues. */
+       * A genuine question always goes straight to a real AI reply first —
+       * never let the classifier guess whether a question is a failed
+       * answer attempt. Only non-question typed answers try local keywords,
+       * then the AI classify call against this step's own 4 options. */
       var noFollowUpDiv = document.getElementById('cb-no-followup');
       if (noFollowUpDiv) {
+        if (isLikelyQuestion(val)) {
+          noFollowUpDiv.remove();
+          askAI(val, false, function () {
+            botReply("By the way, which of these feels closest to what you're dealing with?", function () {
+              renderNoFollowUpButtons();
+            });
+          });
+          return;
+        }
         var nfKw = {
           'Managing data': /managing data|messy data|disorganized data|spreadsheet|data tracking/,
           'Customer interactions': /customer (interactions|service|support)|client (interactions|communication)/,
@@ -1302,11 +1325,16 @@
         return;
       }
 
-      /* Step 0: user types before picking an option — try keyword match,
-       * then AI classify. A vague but on-topic answer gets a clarifying
-       * re-show of the buttons; a genuine off-script question gets a real
-       * AI reply before the buttons reappear. */
+      /* Step 0: a genuine question always goes straight to a real AI reply
+       * first. Otherwise try keyword match, then AI classify, with the
+       * classifier's own OFF_TOPIC detection as a fallback safety net. */
       if (step === 0) {
+        if (isLikelyQuestion(val)) {
+          askAI(val, false, function () {
+            botReply("By the way, what kind of project did you have in mind?", function () { renderStep0Buttons(); });
+          });
+          return;
+        }
         var lower = val.toLowerCase();
         var intentOpts0 = ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'];
         var intentGuess = null;
@@ -1335,6 +1363,12 @@
        * full chatHistory) before the buttons reappear. */
       if (step === 1) {
         var el = document.getElementById('cb-intent'); if (el) el.remove();
+        if (isLikelyQuestion(val)) {
+          askAI(val, false, function () {
+            botReply("By the way, which of these best describes what you need?", function () { showIntentOptions(lead.intent); });
+          });
+          return;
+        }
         var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
         var intentDetailKw = {
           'Mobile App': /mobile app|ios app|android app|build.{0,10}\bapp\b/,
@@ -1368,6 +1402,12 @@
 
       if (step === 2) {
         var elT = document.getElementById('cb-timeline'); if (elT) elT.remove();
+        if (isLikelyQuestion(val)) {
+          askAI(val, false, function () {
+            botReply("By the way, when are you hoping to go live?", function () { showTimelineStep(); });
+          });
+          return;
+        }
         var timelineOpts = ['ASAP', '1-3 months', '3-6 months', '6+ months', 'Not sure yet'];
         var timelineKw = {
           'ASAP': /asap|right away|immediately|urgent|now\b/,
@@ -1390,6 +1430,12 @@
 
       if (step === 3) {
         var elB = document.getElementById('cb-budget'); if (elB) elB.remove();
+        if (isLikelyQuestion(val)) {
+          askAI(val, false, function () {
+            botReply("By the way, do you have a budget range in mind for this project?", function () { showBudgetStep(); });
+          });
+          return;
+        }
         var budgetOpts = ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'];
         var budgetKw = {
           'Under $10k': /under.?10|less than.?10|below.?10/,
