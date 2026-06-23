@@ -6,15 +6,16 @@ This folder is the chatbot's content source. The retrieval layer (`api/_lib/know
 
 ```
 knowledge/
-  case-studies/    one file per client case study (id.json)
-  blog-posts/       one file per blog post (id.json)
-  results/          one file per /results/ entry (id.json)
-  company/          one file per company fact (id.json)
+  company/          one file per company fact (id.json) — about/team page content
   services/         one file per service offering (id.json)
+  case-studies/     one file per client case study (id.json) — mirrors /our-clients/
+  results/          one file per /results/ entry (id.json)
+  blog-posts/       one file per blog post (id.json) — mirrors /blog/
+  faq/              one file per FAQ answer (id.json) — pricing, timeline, etc.
   process/          one file per process/methodology fact (id.json)
 ```
 
-Each subfolder maps to a content type; within it, each file is one knowledge entry named after its `id`. This mirrors the site's own sections (`/our-clients/`, `/blog/`, `/results/`, etc.) so it's obvious where new content belongs.
+Each subfolder maps to a content type; within it, each file is one knowledge entry named after its `id`. This mirrors the site's own sections (`/our-clients/`, `/blog/`, `/results/`, etc.) so it's obvious where new content belongs. `faq/` is for short, direct-answer questions ("how much does it cost", "how long does it take"); `process/` is for the actual delivery methodology (agile, design process, DevOps) — a pricing or timeline question is FAQ content even though it's adjacent to process.
 
 ## Adding a new entry
 

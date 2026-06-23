@@ -1,0 +1,6 @@
+{
+  "id": "timeline-faq",
+  "title": "How Long Does a Project Take?",
+  "keywords": ["how long", "timeline", "turnaround", "how fast", "duration", "when can we launch"],
+  "summary": "Timelines depend on project complexity. Small internal tools typically take 2-4 months, mid-sized applications (customer portals, e-commerce, inventory systems) take 4-8 months, and enterprise platforms (ERP systems, large-scale SaaS) take 8-18+ months. The biggest factors are scope, number of integrations, and how quickly stakeholders review and approve work along the way. A more detailed breakdown of each development phase is available in the 'How Long Does It Actually Take to Build Custom Software?' blog post."
+}
