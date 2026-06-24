@@ -710,6 +710,40 @@
       return trimmed.length > 0 && trimmed.indexOf(' ') === -1;
     }
 
+    /* Deterministic local match against a step's own option list, tried
+     * BEFORE the AI call so an exact (or near-exact) typed option advances
+     * the qualification step instantly, without depending on the model to
+     * correctly self-report [[STEP_ANSWERED]] for the easy case. Restores
+     * the QA-approved version's reliability: the old widget always tried
+     * a local keyword/exact match first and only fell back to an AI
+     * classify call when that failed. Intentionally conservative — only
+     * an exact case-insensitive match or a one-sided substring match
+     * counts, so this never mis-fires on a real sentence that happens to
+     * mention a word from an option (e.g. "I'm not sure about budget yet"
+     * should NOT silently match "Not sure yet" here; that ambiguous case
+     * is exactly what the AI call is still for). */
+    function localExactOptionMatch(v, options) {
+      var trimmed = v.trim();
+      var lower = trimmed.toLowerCase();
+      for (var i = 0; i < options.length; i++) {
+        var opt = options[i];
+        var optLower = opt.toLowerCase();
+        if (lower === optLower) return opt;
+      }
+      // One-sided containment only when the typed text is short enough that
+      // it's plausibly just the option itself with minor extra wording
+      // (e.g. "asap" -> "ASAP", "mobile app" -> "Mobile App"), not a long
+      // sentence that happens to contain the phrase incidentally.
+      if (trimmed.length <= 24) {
+        for (var j = 0; j < options.length; j++) {
+          var opt2 = options[j];
+          if (lower === opt2.toLowerCase()) return opt2;
+          if (opt2.toLowerCase().indexOf(lower) > -1 || lower.indexOf(opt2.toLowerCase()) > -1) return opt2;
+        }
+      }
+      return null;
+    }
+
     /* Rejects refusal phrases, sentences, and phone/email-shaped values
      * from being stored as the lead's name — without this, "I won't tell
      * my name" gets accepted verbatim and the bot replies "Nice to meet
@@ -1567,6 +1601,8 @@
        * answer first. */
       var noFollowUpDiv = document.getElementById('cb-no-followup');
       if (noFollowUpDiv) {
+        var nfLocalMatch = localExactOptionMatch(val, NO_FOLLOWUP_OPTS);
+        if (nfLocalMatch) { noFollowUpDiv.remove(); selectNoFollowUp(nfLocalMatch); return; }
         noFollowUpDiv.remove();
         askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
           if (collectContact) {
@@ -1588,6 +1624,9 @@
       }
 
       if (step === 0) {
+        var step0Opts = ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'];
+        var step0LocalMatch = localExactOptionMatch(val, step0Opts);
+        if (step0LocalMatch) { step1Handler(step0LocalMatch, true); return; }
         askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
           if (collectContact) {
             enterContactFlow();
@@ -1596,13 +1635,15 @@
           } else if (!redirected) {
             renderStep0Buttons();
           }
-        }, { question: 'What kind of project do you need help bringing to life?', options: ['New startup or app idea', 'Software for my business', 'Digital marketing help', 'Just exploring'] });
+        }, { question: 'What kind of project do you need help bringing to life?', options: step0Opts });
         return;
       }
 
       if (step === 1) {
         var el = document.getElementById('cb-intent'); if (el) el.remove();
         var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
+        var step1LocalMatch = localExactOptionMatch(val, intentDetailOpts);
+        if (step1LocalMatch) { lead.intent_detail = step1LocalMatch; step = 2; showBudgetStep(); return; }
         askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
           if (collectContact) {
             enterContactFlow();
@@ -1618,6 +1659,8 @@
       if (step === 2) {
         var elB = document.getElementById('cb-budget'); if (elB) elB.remove();
         var budgetOpts = ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'];
+        var step2LocalMatch = localExactOptionMatch(val, budgetOpts);
+        if (step2LocalMatch) { lead.budget = step2LocalMatch; showNotesStep(); return; }
         askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
           if (collectContact) {
             enterContactFlow();
