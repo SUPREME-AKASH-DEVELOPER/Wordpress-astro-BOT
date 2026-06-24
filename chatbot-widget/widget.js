@@ -597,6 +597,42 @@
       if (!isReplayingSession) { transcript.push({ role: 'bot', html: text }); saveSession(); }
     }
 
+    /* Appends a resume-the-flow line to the LAST bot bubble (the AI's own
+     * answer, just rendered by askAI) instead of opening a new, separate
+     * bubble via botReply(). A detour answer followed by an unrelated
+     * second message in its own bubble is exactly the "feels like a form
+     * bolted onto a chatbot" pattern this exists to avoid — one consultant
+     * voice continuing their own sentence reads naturally; two disconnected
+     * messages stacked on top of each other do not. Skipped entirely when
+     * the AI's reply already ends in a question mark, since it has then
+     * already asked something and appending a second question would be
+     * exactly the stacking bug fixed elsewhere in this file. Keeps
+     * chatHistory/transcript in sync with what's now visually shown, since
+     * both were already seeded with the AI's original (un-appended) reply
+     * by askAI just before this runs. */
+    function appendResumeLineToLastBotMsg(aiReply, resumeLine) {
+      if (/[?]\s*$/.test((aiReply || '').trim())) return false; /* AI already asked something */
+      var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
+      var last = wraps[wraps.length - 1];
+      var lastBubble = last && last.querySelector('.cb-bot-msg');
+      if (!lastBubble) return false;
+      lastBubble.appendChild(document.createElement('br'));
+      lastBubble.appendChild(document.createElement('br'));
+      lastBubble.appendChild(document.createTextNode(resumeLine));
+      scroll();
+      var combined = (aiReply || '') + '\n\n' + resumeLine;
+      if (!isReplayingSession) {
+        if (chatHistory.length && chatHistory[chatHistory.length - 1].role === 'assistant') {
+          chatHistory[chatHistory.length - 1].content = combined;
+        }
+        if (transcript.length && transcript[transcript.length - 1].role === 'bot') {
+          transcript[transcript.length - 1].html = combined;
+        }
+        saveSession();
+      }
+      return true;
+    }
+
     function addUserMsg(text) {
       cancelTeaserFlow();
       conversationStarted = true;
@@ -1643,7 +1679,7 @@
         var el = document.getElementById('cb-intent'); if (el) el.remove();
         var intentDetailOpts = INTENT_OPTIONS[lead.intent] || ['Mobile App', 'Web App', 'Something else'];
         var step1LocalMatch = localExactOptionMatch(val, intentDetailOpts);
-        if (step1LocalMatch) { lead.intent_detail = step1LocalMatch; step = 2; showBudgetStep(); return; }
+        if (step1LocalMatch) { lead.intent_detail = step1LocalMatch; step = 2; chatHistory.push({ role: 'user', content: val }); showBudgetStep(); return; }
         askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
           if (collectContact) {
             enterContactFlow();
@@ -1660,7 +1696,7 @@
         var elB = document.getElementById('cb-budget'); if (elB) elB.remove();
         var budgetOpts = ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'];
         var step2LocalMatch = localExactOptionMatch(val, budgetOpts);
-        if (step2LocalMatch) { lead.budget = step2LocalMatch; showNotesStep(); return; }
+        if (step2LocalMatch) { lead.budget = step2LocalMatch; chatHistory.push({ role: 'user', content: val }); showNotesStep(); return; }
         askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
           if (collectContact) {
             enterContactFlow();
@@ -1678,6 +1714,10 @@
       if (step === 3) {
         var elS = document.getElementById('cb-notes-skip'); if (elS) elS.remove();
         lead.project_notes = val;
+        /* The user's own description of their project/pain points — exactly
+         * the kind of detail that should be remembered and referenced
+         * later, so it has to actually reach chatHistory, not just lead. */
+        chatHistory.push({ role: 'user', content: val });
         goToContactStep("Thanks, this helps a lot!");
         return;
       }
@@ -1693,7 +1733,9 @@
       if (step === 4 && isOffTopic(val)) {
         askAI(val, false, function (reply) {
           if (reply === null) return; /* error path already showed a message */
-          botReply("For now: What's your name?");
+          if (!appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's your name?")) {
+            botReply("For now: What's your name?");
+          }
         });
         return;
       }
@@ -1702,17 +1744,25 @@
          * conversational detour (a question, "wait", etc.) rather than
          * validating it as one. Answer naturally via the AI, then return
          * to the still-active phone step instead of re-asking immediately
-         * with no acknowledgment of what was just said. */
+         * with no acknowledgment of what was just said. Appended to the
+         * SAME bubble as the AI's answer (one consultant voice continuing
+         * its own sentence) rather than opening a second, disconnected
+         * bot message — only falls back to a separate botReply() if the
+         * AI's own reply already ended with a question of its own. */
         askAI(val, false, function (reply) {
           if (reply === null) return;
-          botReply("Whenever you're ready, what's the best phone number to reach you?");
+          if (!appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best phone number to reach you?")) {
+            botReply("Whenever you're ready, what's the best phone number to reach you?");
+          }
         });
         return;
       }
       if (step === 6 && !looksLikeEmailAttempt(val)) {
         askAI(val, false, function (reply) {
           if (reply === null) return;
-          botReply("Whenever you're ready, what's the best email address to reach you?");
+          if (!appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best email address to reach you?")) {
+            botReply("Whenever you're ready, what's the best email address to reach you?");
+          }
         });
         return;
       }
@@ -1722,17 +1772,31 @@
           return; /* stays on step 4 — never advances to phone on an invalid/refused name */
         }
         lead.name = val; step = 5;
-        botReply('Nice to meet you, ' + val + '! What\'s the best phone number to reach you?'); return;
+        /* Pushed into chatHistory (not just lead.name) so the AI actually
+         * has this fact available on every later request — without this,
+         * the model has no way to know the user's name even though the
+         * widget's own lead object does, producing exactly the "I don't
+         * have any information about you" bug when later asked "do you
+         * know me?". Same reasoning applies to phone/email/notes below. */
+        chatHistory.push({ role: 'user', content: val });
+        var nameReply = 'Nice to meet you, ' + val + '! What\'s the best phone number to reach you?';
+        chatHistory.push({ role: 'assistant', content: nameReply });
+        botReply(nameReply); return;
       }
       if (step === 5) {
         var digits = val.replace(/\D/g, '');
         if (digits.length < 7) { botReply("That doesn't look like a valid phone number. Could you double-check?"); return; }
         lead.phone = val; step = 6;
-        botReply("Got it! And what's the best email address to reach you?"); return;
+        chatHistory.push({ role: 'user', content: val });
+        var phoneReply = "Got it! And what's the best email address to reach you?";
+        chatHistory.push({ role: 'assistant', content: phoneReply });
+        botReply(phoneReply); return;
       }
       if (step === 6) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { botReply("That doesn't look right. Could you double-check your email address?"); return; }
-        lead.email = val; showFinalCTA(); return;
+        lead.email = val;
+        chatHistory.push({ role: 'user', content: val });
+        showFinalCTA(); return;
       }
 
       /* Step 7: lead already fully captured, CTA buttons are showing. The
