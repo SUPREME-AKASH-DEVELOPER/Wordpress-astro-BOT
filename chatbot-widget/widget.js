@@ -49,7 +49,7 @@
   var AVATAR_URL    = scriptAttr('data-avatar', BASE_URL + 'avatar-alex.png');
   var AVATAR_FB     = scriptAttr('data-avatar-fallback', AVATAR_URL);
   var CALENDLY_URL  = scriptAttr('data-calendly', 'https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3loQplPyCXe28FPP0trIgOCmhJqwKCXka1x3uCkblaAFtklpetKpkyi6glNBGxVR8jpOQenySG');
-  var BOT_NAME      = scriptAttr('data-bot-name', 'Alex');
+  var BOT_NAME      = scriptAttr('data-bot-name', 'Erin');
   var BOT_TITLE     = scriptAttr('data-bot-title', 'The Demski Group');
 
   /* ── CONSTANTS ── */
@@ -132,7 +132,7 @@
     utm_source: fp.utm_source || '', utm_campaign: fp.utm_campaign || '',
     utm_medium: fp.utm_medium || '', utm_term: fp.utm_term || '',
     utm_content: fp.utm_content || '', gclid: fp.gclid || '',
-    intent: '', intent_detail: '', timeline: '', budget: '', project_notes: '',
+    intent: '', intent_detail: '', budget: '', project_notes: '',
     name: '', phone: '', email: '', cta_choice: ''
   };
 
@@ -500,7 +500,7 @@
       } else if (step === 0) {
         renderStep0Buttons();
       }
-      /* Steps 2+ (timeline/budget/notes/contact/final) intentionally don't
+      /* Steps 2+ (budget/notes/contact/final) intentionally don't
        * re-render their own button group here — those steps' own botReply
        * text is already the last replayed message, and re-invoking them
        * would re-ask the question a second time. The visitor can just
@@ -678,9 +678,29 @@
     function isValidName(v) {
       var trimmed = v.trim();
       var lower = trimmed.toLowerCase();
-      var refusalKw = ["won't tell", 'wont tell', "don't want to share", 'dont want to share', 'prefer not to say', 'not comfortable sharing', 'not comfortable', "rather not say", 'rather not', 'no thanks', 'not telling'];
-      if (refusalKw.some(function (k) { return lower.indexOf(k) > -1; })) return false;
-      if (/^(no|skip|nope|nah)$/.test(lower)) return false;
+      /* Bare/short refusal phrases — checked as exact matches (after
+       * stripping punctuation) rather than substrings, so this list can
+       * include short, common words like "no" or "skip" without rejecting
+       * a real name that happens to contain them as a substring. "no name"
+       * is the exact case that slipped through before: it's short enough
+       * to pass every other check (not a sentence, not phone/email-shaped,
+       * 2 words), so it needs its own explicit entry rather than relying
+       * on the bare-"no" regex alone. */
+      var lowerNoPunct = lower.replace(/[.!?]+$/, '');
+      var exactRefusalPhrases = [
+        'no name', 'no', 'nope', 'nah', 'skip', 'not telling',
+        "don't want to tell", 'dont want to tell',
+        "don't want to share", 'dont want to share',
+        'rather not', 'prefer not to say', 'anonymous',
+        'no thanks', 'not comfortable sharing',
+      ];
+      if (exactRefusalPhrases.indexOf(lowerNoPunct) > -1) return false;
+      /* Longer refusal phrases that can appear embedded in a fuller
+       * sentence ("I really don't want to tell you my name right now") —
+       * substring match is appropriate here since these phrases are
+       * distinctive enough that a real name would never contain them. */
+      var refusalSubstrings = ["won't tell", 'wont tell', "don't want to share", 'dont want to share', "don't want to tell", 'dont want to tell', 'prefer not to say', 'not comfortable sharing', 'not comfortable', "rather not say", 'rather not', 'no thanks', 'not telling'];
+      if (refusalSubstrings.some(function (k) { return lower.indexOf(k) > -1; })) return false;
       /* Phone numbers and email addresses typed into the name field. */
       if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return false;
       if (/^\d+$/.test(trimmed.replace(/[\s\-().]/g, ''))) return false;
@@ -794,7 +814,7 @@
 
     function scheduleIdleTimer() {
       clearTimeout(idleTimer);
-      if (step < 8 && !idleReminderShown) idleTimer = setTimeout(showIdleReminder, idleInterval);
+      if (step < 7 && !idleReminderShown) idleTimer = setTimeout(showIdleReminder, idleInterval);
     }
 
     function resetIdleTimer() {
@@ -812,7 +832,7 @@
      * idleInterval). If the input happens to have focus right as the timer
      * elapses, push it out a bit further rather than interrupting typing. */
     function showIdleReminder() {
-      if (step >= 8 || awaitingIdleResponse || idleReminderShown) return;
+      if (step >= 7 || awaitingIdleResponse || idleReminderShown) return;
       if (document.activeElement === inputEl) {
         idleTimer = setTimeout(showIdleReminder, 15000);
         return;
@@ -1108,22 +1128,22 @@
     /* ── "NO" FOLLOW-UP (hardcoded persuasive nudge + quick replies) ── */
     var NO_FOLLOWUP_OPTS = ['Managing data', 'Customer interactions', 'Team coordination', 'Nothing really'];
     var NO_FOLLOWUP_REPLIES = {
-      'Managing data':          "That's a common one, disorganized data slows everything down. Let's figure out a timeline.",
-      'Customer interactions':  "Got it, smoother customer interactions can make a big difference. Let's figure out a timeline.",
-      'Team coordination':     "Makes sense, better team coordination saves a ton of time. Let's figure out a timeline.",
-      'Nothing really':        "No worries! Let's get a quick sense of timing in case anything comes up."
+      'Managing data':          "That's a common one, disorganized data slows everything down. Let's talk budget.",
+      'Customer interactions':  "Got it, smoother customer interactions can make a big difference. Let's talk budget.",
+      'Team coordination':     "Makes sense, better team coordination saves a ton of time. Let's talk budget.",
+      'Nothing really':        "No worries! Let's get a quick sense of budget in case anything comes up."
     };
 
     /* Shared by the button click and the typed-text match path: records the
      * pain point as the lead's intent detail, gives a short hardcoded
-     * contextual reply, then always continues into the scripted Timeline
+     * contextual reply, then always continues into the scripted Budget
      * MCQ — never leaves the user parked in free-text mode. */
     function selectNoFollowUp(val) {
       lead.intent = 'Software for my business';
       lead.intent_detail = val;
       chatHistory.push({ role: 'user', content: val });
-      botReply(NO_FOLLOWUP_REPLIES[val] || "Got it, let's figure out a timeline.", function () {
-        showTimelineStep();
+      botReply(NO_FOLLOWUP_REPLIES[val] || "Got it, let's talk budget.", function () {
+        showBudgetStep();
       });
     }
 
@@ -1281,7 +1301,7 @@
           addUserMsg(o); lead.intent_detail = o;
           chatHistory.push({ role: 'user', content: o });
           step = 2;
-          showTimelineStep();
+          showBudgetStep();
         };
         div.appendChild(b);
       });
@@ -1295,36 +1315,9 @@
       msgs.appendChild(div); scrollToLatestBotMsg();
     }
 
-    /* ── TIMELINE ── */
-    function showTimelineStep() {
-      step = 2; resetIdleTimer();
-      chatHistory.push({ role: 'assistant', content: 'When would you like to go live?' });
-      botReply('When would you like to go live?', function () {
-        showInputBar();
-        inputEl.placeholder = 'Type your answer...';
-        var oldTimeline = document.getElementById('cb-timeline'); if (oldTimeline) oldTimeline.remove();
-        var div = document.createElement('div'); div.className = 'cb-qbtns cb-grid'; div.id = 'cb-timeline';
-        ['ASAP', '1-3 months', '3-6 months', '6+ months', 'Not sure yet'].forEach(function (tv) {
-          var btn = document.createElement('button'); btn.textContent = tv;
-          btn.onclick = function () {
-            var el = document.getElementById('cb-timeline'); if (el) el.remove();
-            addUserMsg(tv); lead.timeline = tv;
-            chatHistory.push({ role: 'user', content: tv });
-            showBudgetStep();
-          };
-          div.appendChild(btn);
-        });
-        div.appendChild(makeBackBtn('Back', function () {
-          var el = document.getElementById('cb-timeline'); if (el) el.remove();
-          lead.timeline = ''; step = 1; showIntentOptions(lead.intent);
-        }));
-        msgs.appendChild(div); scrollToLatestBotMsg();
-      });
-    }
-
     /* ── BUDGET ── */
     function showBudgetStep() {
-      step = 3; resetIdleTimer();
+      step = 2; resetIdleTimer();
       chatHistory.push({ role: 'assistant', content: 'Do you have a budget range in mind for this project?' });
       botReply('Do you have a budget range in mind for this project?', function () {
         showInputBar();
@@ -1343,7 +1336,7 @@
         });
         div.appendChild(makeBackBtn('Back', function () {
           var el = document.getElementById('cb-budget'); if (el) el.remove();
-          lead.budget = ''; step = 2; showTimelineStep();
+          lead.budget = ''; step = 1; showIntentOptions(lead.intent);
         }));
         msgs.appendChild(div); scrollToLatestBotMsg();
       });
@@ -1351,7 +1344,7 @@
 
     /* ── OPTIONAL NOTES (free text, skippable) ── */
     function showNotesStep() {
-      step = 4; resetIdleTimer();
+      step = 3; resetIdleTimer();
       hideInputBar();
       botReply("Anything else you'd like us to know about your project?", function () {
         showInputBar();
@@ -1392,11 +1385,11 @@
         });
         return;
       }
-      step = !lead.name ? 5 : !lead.phone ? 6 : 7;
+      step = !lead.name ? 4 : !lead.phone ? 5 : 6;
       showInputBar();
       inputEl.placeholder = 'Type your answer...';
       setTimeout(function () { inputEl.focus(); }, 50);
-      var nextQuestion = step === 5 ? "What's your name?" : step === 6 ? "What's the best phone number to reach you?" : "What's the best email address to reach you?";
+      var nextQuestion = step === 4 ? "What's your name?" : step === 5 ? "What's the best phone number to reach you?" : "What's the best email address to reach you?";
       var intro = introMsg === undefined ? "Let me grab your details so our team can reach out." : introMsg;
       botReply(intro ? intro + '\n\n' + nextQuestion : nextQuestion);
     }
@@ -1418,7 +1411,7 @@
      * "here's the next step" line itself — avoids stacking two near-
      * identical sentences back to back. */
     function showFinalCTA(skipIntro) {
-      step = 8; clearTimeout(idleTimer);
+      step = 7; clearTimeout(idleTimer);
       hideInputBar();
       function renderCtaButtons() {
         var div = document.createElement('div'); div.className = 'cb-cta-btns'; div.id = 'cb-cta';
@@ -1476,7 +1469,6 @@
     function submitLead() {
       var p = {
         intent: lead.intent, intent_detail: lead.intent_detail,
-        timeline: lead.timeline,
         budget: lead.budget,
         project_notes: lead.project_notes,
         name: lead.name, phone: lead.phone, email: lead.email, cta_choice: lead.cta_choice,
@@ -1573,7 +1565,7 @@
           if (collectContact) {
             enterContactFlow();
           } else if (stepAnswered) {
-            lead.intent_detail = matchedOption || val; step = 2; showTimelineStep();
+            lead.intent_detail = matchedOption || val; step = 2; showBudgetStep();
           } else if (!redirected) {
             showIntentOptions(lead.intent);
           }
@@ -1582,21 +1574,6 @@
       }
 
       if (step === 2) {
-        var elT = document.getElementById('cb-timeline'); if (elT) elT.remove();
-        var timelineOpts = ['ASAP', '1-3 months', '3-6 months', '6+ months', 'Not sure yet'];
-        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
-          if (collectContact) {
-            enterContactFlow();
-          } else if (stepAnswered) {
-            lead.timeline = matchedOption || val; showBudgetStep();
-          } else if (!redirected) {
-            showTimelineStep();
-          }
-        }, { question: 'When would you like to go live?', options: timelineOpts });
-        return;
-      }
-
-      if (step === 3) {
         var elB = document.getElementById('cb-budget'); if (elB) elB.remove();
         var budgetOpts = ['Under $10k', '$10k - $25k', '$25k - $50k', '$50k+', 'Not sure yet'];
         askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
@@ -1611,17 +1588,17 @@
         return;
       }
 
-      /* Step 4: optional notes free text — save it, then move straight into
+      /* Step 3: optional notes free text — save it, then move straight into
        * contact info collection (the Skip button covers the empty case). */
-      if (step === 4) {
+      if (step === 3) {
         var elS = document.getElementById('cb-notes-skip'); if (elS) elS.remove();
         lead.project_notes = val;
         goToContactStep("Thanks, this helps a lot!");
         return;
       }
 
-      if ((step === 5 || step === 6 || step === 7) && isOffTopic(val)) {
-        var q = step === 5 ? "What's your name?" : step === 6 ? "What's your phone number?" : "What's your email address?";
+      if ((step === 4 || step === 5 || step === 6) && isOffTopic(val)) {
+        var q = step === 4 ? "What's your name?" : step === 5 ? "What's your phone number?" : "What's your email address?";
         /* Off-topic question during lead capture — answer via AI, then
          * steer back to the field we still need. */
         askAI(val, false, function (reply) {
@@ -1630,26 +1607,26 @@
         });
         return;
       }
-      if (step === 5) {
+      if (step === 4) {
         if (!isValidName(val)) {
           botReply("That's completely fine. We usually ask for a name so our team knows who they're speaking with. If you'd prefer not to share it, you can provide a first name, nickname, or business name instead.");
-          return; /* stays on step 5 — never advances to phone on an invalid/refused name */
+          return; /* stays on step 4 — never advances to phone on an invalid/refused name */
         }
-        lead.name = val; step = 6;
+        lead.name = val; step = 5;
         botReply('Nice to meet you, ' + val + '! What\'s the best phone number to reach you?'); return;
       }
-      if (step === 6) {
+      if (step === 5) {
         var digits = val.replace(/\D/g, '');
         if (digits.length < 7) { botReply("That doesn't look like a valid phone number. Could you double-check?"); return; }
-        lead.phone = val; step = 7;
+        lead.phone = val; step = 6;
         botReply("Got it! And what's the best email address to reach you?"); return;
       }
-      if (step === 7) {
+      if (step === 6) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { botReply("That doesn't look right. Could you double-check your email address?"); return; }
         lead.email = val; showFinalCTA(); return;
       }
 
-      /* Step 8: lead already fully captured, CTA buttons are showing. The
+      /* Step 7: lead already fully captured, CTA buttons are showing. The
        * user can still type here (the input bar is never hidden), so a
        * message like "I forgot to enter my actual email" must be handled
        * as a correction to the data already on file, not fed into normal
@@ -1659,7 +1636,7 @@
        * the user clicks a CTA button (handleCTA), and the input is
        * disabled the instant that happens, so any correction necessarily
        * happens before that real submission and is picked up by it. */
-      if (step === 8) {
+      if (step === 7) {
         if (correctingField && correctingField !== 'pending-field-name') {
           var field = correctingField;
           if (field === 'email') {
