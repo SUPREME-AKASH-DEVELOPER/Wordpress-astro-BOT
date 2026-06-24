@@ -126,14 +126,15 @@ function extractStepSignal(raw, hadStepContext) {
   }
   // Model didn't include a marker at all — happens often enough with
   // gpt-4o-mini that the widget cannot depend on the marker being present.
-  // The bias here is deliberately one-directional: when we can't prove the
-  // original question is still open, default to NOT showing the buttons.
-  // Re-showing stale MCQs under an unrelated answer is the visible,
-  // embarrassing bug; silently waiting for one extra typed message instead
-  // of showing buttons is not. Buttons only ever reappear when the model
-  // explicitly confirms the question is still unanswered via
-  // [[STEP_NOT_ANSWERED]] — never as a blind default.
-  return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: true, collectContact: false };
+  // Restored to the QA-approved bias: when we can't prove what happened,
+  // default to treating the question as STILL OPEN (same as
+  // [[STEP_NOT_ANSWERED]]) so the MCQ buttons reliably reappear. The
+  // alternative (defaulting to redirected:true) was tried and caused the
+  // qualification flow to silently stall into open-ended chat mode on
+  // every marker omission, which is the more damaging failure mode for a
+  // guided-qualification widget — a visible "still here, options below"
+  // beats a silent dead end.
+  return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: false, collectContact: false };
 }
 
 export default async function handler(req, res) {
