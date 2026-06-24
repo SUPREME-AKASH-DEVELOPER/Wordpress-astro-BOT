@@ -699,11 +699,6 @@
       return b;
     }
 
-    function isOffTopic(v) {
-      var offTopicKw = ['price', 'pricing', 'cost', 'how much', 'what do you', 'who are you', 'services', 'what is', 'can you', 'help', 'support', 'contact', 'discount', 'trial'];
-      return offTopicKw.some(function (k) { return v.toLowerCase().indexOf(k) > -1; });
-    }
-
     /* Does this message actually look like an attempt to provide a phone
      * number, rather than a conversational aside ("I have one doubt",
      * "Wait", "Can I ask something first?")? Keyword-denylisting every
@@ -744,6 +739,36 @@
       var trimmed = v.trim();
       if (trimmed.indexOf('@') > -1) return true;
       return trimmed.length > 0 && trimmed.indexOf(' ') === -1;
+    }
+
+    /* Same shape-based idea as looksLikePhoneAttempt/looksLikeEmailAttempt,
+     * applied to the name step. Previously this step relied on isOffTopic's
+     * narrow keyword denylist (price/cost/services/help/contact/etc.) to
+     * decide whether to detour to the AI instead of validating as a name —
+     * a real question like "who is andrew" or "i have one question before
+     * i tell you my name who is andrew" contains NONE of those keywords,
+     * so it fell straight through into isValidName() and got flatly
+     * rejected as a refusal, with the actual question never answered at
+     * all. A genuine name is short and declarative; treat anything with a
+     * '?', a leading question/imperative word, or more than 4 words as a
+     * detour to answer via the AI instead of as a (failed) name attempt —
+     * mirrors isValidName's own word-count threshold so the two stay
+     * consistent. The imperative words (tell, show, explain, etc.) close a
+     * gap a leading-question-word check alone misses: "Tell me about
+     * FlowerMoxie" is 4 words, has no '?', and doesn't start with
+     * who/what/how, so it used to pass straight through as if it WERE the
+     * user's name ("Nice to meet you, Tell me about FlowerMoxie!"). */
+    function looksLikeNameAttempt(v) {
+      var trimmed = v.trim();
+      if (!trimmed) return false;
+      if (trimmed.indexOf('?') > -1) return false;
+      var wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+      if (wordCount > 4) return false;
+      var firstWord = trimmed.split(/\s+/)[0].toLowerCase();
+      var questionWords = ['who', 'what', 'when', 'where', 'why', 'how', 'is', 'are', 'do', 'does', 'can', 'could', 'would', 'will',
+        'tell', 'show', 'explain', 'describe', 'give', 'list', 'let'];
+      if (questionWords.indexOf(firstWord) > -1) return false;
+      return true;
     }
 
     /* Deterministic local match against a step's own option list, tried
@@ -822,6 +847,15 @@
       var wordCount = trimmed.split(/\s+/).filter(Boolean).length;
       if (wordCount > 4) return false;
       if (trimmed.length < 2) return false;
+      /* Second line of defense behind looksLikeNameAttempt's own gate: a
+       * leading imperative ("Tell me about FlowerMoxie", "Show me your
+       * services") is conversational, never a name, even at <=4 words with
+       * no '?' and no question word — without this, such a phrase gets
+       * stored verbatim as lead.name ("Nice to meet you, Tell me about
+       * FlowerMoxie!"). */
+      var imperativeFirstWords = ['tell', 'show', 'explain', 'describe', 'give', 'list', 'let', 'who', 'what', 'when', 'where', 'why', 'how', 'is', 'are', 'do', 'does', 'can', 'could', 'would', 'will'];
+      var firstWordLower = lower.split(/\s+/)[0];
+      if (imperativeFirstWords.indexOf(firstWordLower) > -1) return false;
       return true;
     }
 
@@ -1722,15 +1756,17 @@
         return;
       }
 
-      /* Step 4 (name) keeps the original keyword-based off-topic detour —
-       * isValidName() below already has its own robust rejection path for
-       * refusals, so a name-shape check isn't needed here the way it is
-       * for phone/email. Steps 5/6 use a stricter, shape-based check
-       * instead of isOffTopic's keyword denylist: a conversational aside
-       * like "I have one doubt" or "Wait" contains none of isOffTopic's
-       * keywords and would otherwise fall through into digit/email-regex
-       * validation and get misread as an invalid phone number/email. */
-      if (step === 4 && isOffTopic(val)) {
+      /* Step 4 (name) now uses the same shape-based detour check as
+       * phone/email (looksLikeNameAttempt) instead of isOffTopic's narrow
+       * keyword denylist — a real question like "who is andrew" contains
+       * none of isOffTopic's keywords (price/cost/services/help/contact),
+       * so it used to fall straight through into isValidName() and get
+       * flatly rejected as a refusal, with the actual question never
+       * answered. Now any message that isn't name-shaped (a question, a
+       * multi-clause sentence, "I have one question before I tell you my
+       * name who is andrew") is answered by the AI first, then the name
+       * prompt resumes in the same bubble. */
+      if (step === 4 && !looksLikeNameAttempt(val)) {
         askAI(val, false, function (reply) {
           if (reply === null) return; /* error path already showed a message */
           if (!appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's your name?")) {
