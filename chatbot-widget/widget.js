@@ -668,6 +668,48 @@
       return offTopicKw.some(function (k) { return v.toLowerCase().indexOf(k) > -1; });
     }
 
+    /* Does this message actually look like an attempt to provide a phone
+     * number, rather than a conversational aside ("I have one doubt",
+     * "Wait", "Can I ask something first?")? Keyword-denylisting every
+     * possible way someone might phrase a detour (isOffTopic's approach)
+     * is inherently incomplete — the next unanticipated phrasing slips
+     * through and hits the same false "invalid phone number" bug. Instead,
+     * require the message to be digit-dominant before treating it as a
+     * phone attempt at all: digits must make up at least half of its
+     * non-space characters. This deliberately does NOT require a minimum
+     * digit count — "123" is digit-dominant and short, so it's correctly
+     * treated as a (invalid) phone attempt and still gets the real
+     * validation-rejection message, while "I have 1 doubt" is mostly
+     * letters despite containing a digit, so it's correctly treated as a
+     * conversational detour instead. The actual length check (>= 7
+     * digits) still happens in the real validation step below — this
+     * function only decides whether to validate at all. */
+    function looksLikePhoneAttempt(v) {
+      var trimmed = v.trim();
+      if (!trimmed) return false;
+      var digitCount = (trimmed.match(/\d/g) || []).length;
+      if (digitCount === 0) return false;
+      var nonSpaceLen = trimmed.replace(/\s/g, '').length;
+      return digitCount / nonSpaceLen >= 0.5;
+    }
+
+    /* Same idea for email: a real attempt either contains '@', or is a
+     * single word with no spaces at all (covers garbled/typo'd attempts
+     * like "not-an-email" or "akashgmailcom" with the @ missing or
+     * mistyped). Genuine conversational detours ("Can I ask something
+     * first?", "What services do you offer?") are essentially always
+     * multiple words, so a single bare token is far more likely to be a
+     * bad email attempt than real conversation — a one-word detour like
+     * "Wait" is rare enough, and ambiguous enough on its own, that
+     * treating it as a (failed) email attempt and asking the user to
+     * double-check is an acceptable tradeoff for reliably catching
+     * malformed email attempts instead. */
+    function looksLikeEmailAttempt(v) {
+      var trimmed = v.trim();
+      if (trimmed.indexOf('@') > -1) return true;
+      return trimmed.length > 0 && trimmed.indexOf(' ') === -1;
+    }
+
     /* Rejects refusal phrases, sentences, and phone/email-shaped values
      * from being stored as the lead's name — without this, "I won't tell
      * my name" gets accepted verbatim and the bot replies "Nice to meet
@@ -1597,13 +1639,37 @@
         return;
       }
 
-      if ((step === 4 || step === 5 || step === 6) && isOffTopic(val)) {
-        var q = step === 4 ? "What's your name?" : step === 5 ? "What's your phone number?" : "What's your email address?";
-        /* Off-topic question during lead capture — answer via AI, then
-         * steer back to the field we still need. */
+      /* Step 4 (name) keeps the original keyword-based off-topic detour —
+       * isValidName() below already has its own robust rejection path for
+       * refusals, so a name-shape check isn't needed here the way it is
+       * for phone/email. Steps 5/6 use a stricter, shape-based check
+       * instead of isOffTopic's keyword denylist: a conversational aside
+       * like "I have one doubt" or "Wait" contains none of isOffTopic's
+       * keywords and would otherwise fall through into digit/email-regex
+       * validation and get misread as an invalid phone number/email. */
+      if (step === 4 && isOffTopic(val)) {
         askAI(val, false, function (reply) {
           if (reply === null) return; /* error path already showed a message */
-          botReply('For now: ' + q);
+          botReply("For now: What's your name?");
+        });
+        return;
+      }
+      if (step === 5 && !looksLikePhoneAttempt(val)) {
+        /* Doesn't look like a phone number at all — treat as a genuine
+         * conversational detour (a question, "wait", etc.) rather than
+         * validating it as one. Answer naturally via the AI, then return
+         * to the still-active phone step instead of re-asking immediately
+         * with no acknowledgment of what was just said. */
+        askAI(val, false, function (reply) {
+          if (reply === null) return;
+          botReply("Whenever you're ready, what's the best phone number to reach you?");
+        });
+        return;
+      }
+      if (step === 6 && !looksLikeEmailAttempt(val)) {
+        askAI(val, false, function (reply) {
+          if (reply === null) return;
+          botReply("Whenever you're ready, what's the best email address to reach you?");
         });
         return;
       }
