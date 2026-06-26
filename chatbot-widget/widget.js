@@ -603,15 +603,18 @@
      * second message in its own bubble is exactly the "feels like a form
      * bolted onto a chatbot" pattern this exists to avoid — one consultant
      * voice continuing their own sentence reads naturally; two disconnected
-     * messages stacked on top of each other do not. Skipped entirely when
-     * the AI's reply already ends in a question mark, since it has then
-     * already asked something and appending a second question would be
-     * exactly the stacking bug fixed elsewhere in this file. Keeps
-     * chatHistory/transcript in sync with what's now visually shown, since
-     * both were already seeded with the AI's original (un-appended) reply
-     * by askAI just before this runs. */
+     * messages stacked on top of each other do not. Always merges into the
+     * same bubble, even when the AI's own reply already ends in a question
+     * mark: an earlier version bailed out here and let the caller fall back
+     * to a second, separate botReply() bubble instead, which is exactly the
+     * "two questions back to back" stacking bug this function exists to
+     * prevent, just moved one level up. One bubble with two sentences reads
+     * as a single consultant continuing their thought; two bubbles in a row
+     * read as the bot ignoring what was just said. Keeps chatHistory/
+     * transcript in sync with what's now visually shown, since both were
+     * already seeded with the AI's original (un-appended) reply by askAI
+     * just before this runs. */
     function appendResumeLineToLastBotMsg(aiReply, resumeLine) {
-      if (/[?]\s*$/.test((aiReply || '').trim())) return false; /* AI already asked something */
       var wraps = msgs.querySelectorAll('.cb-bot-msg-wrap');
       var last = wraps[wraps.length - 1];
       var lastBubble = last && last.querySelector('.cb-bot-msg');
@@ -739,6 +742,30 @@
       var trimmed = v.trim();
       if (trimmed.indexOf('@') > -1) return true;
       return trimmed.length > 0 && trimmed.indexOf(' ') === -1;
+    }
+
+    /* Detects an explicit "I don't want to give that out" on the phone/email
+     * steps, generalized from isValidName's own refusal-phrase lists below
+     * (exactRefusalPhrases/refusalSubstrings) so all three contact fields
+     * recognize the same vocabulary instead of phone/email having no refusal
+     * handling at all. Without this, a refusal isn't phone/email-shaped, so
+     * it fell into the generic AI-detour branch, which acknowledged it and
+     * then re-asked the exact same question, since detour resume always
+     * steers back to the still-open step, never the next one — visibly
+     * ignoring a "no" and asking again. Checked BEFORE the detour branch so
+     * a refusal short-circuits straight to skipping the field instead of
+     * ever reaching the AI. */
+    function looksLikeContactRefusal(v) {
+      var lower = v.trim().toLowerCase().replace(/[.!?]+$/, '');
+      var exactPhrases = ['no', 'nope', 'nah', 'skip', 'not telling', 'no thanks', 'rather not', 'prefer not to say', 'anonymous', 'not comfortable sharing'];
+      if (exactPhrases.indexOf(lower) > -1) return true;
+      var substrings = [
+        "don't want to give", 'dont want to give', "won't give", 'wont give',
+        "don't want to share", 'dont want to share', "don't want to tell", 'dont want to tell',
+        "won't tell", 'wont tell', 'not comfortable', 'rather not', 'prefer not to say',
+        'no thanks', 'not telling', "don't have a phone", "i'd rather not", 'id rather not',
+      ];
+      return substrings.some(function (k) { return lower.indexOf(k) > -1; });
     }
 
     /* Same shape-based idea as looksLikePhoneAttempt/looksLikeEmailAttempt,
@@ -1563,9 +1590,17 @@
         var div = document.createElement('div'); div.className = 'cb-cta-btns'; div.id = 'cb-cta';
         var book = document.createElement('button'); book.className = 'cb-cta-primary'; book.textContent = 'Book a Google Meet';
         book.onclick = function () { handleCTA('Book a Google Meet'); window.open(CALENDLY_URL, '_blank'); };
-        var em = document.createElement('button'); em.className = 'cb-cta-secondary'; em.textContent = 'Send me info by email';
-        em.onclick = function () { handleCTA('Send me info by email'); };
-        div.appendChild(book); div.appendChild(em); msgs.appendChild(div); scrollToLatestBotMsg();
+        div.appendChild(book);
+        /* "Send me info by email" only makes sense when an email is on
+         * file (the user may have refused to give one, see the step-6
+         * refusal handler above) — omitted rather than shown pointing at
+         * a blank address. */
+        if (lead.email) {
+          var em = document.createElement('button'); em.className = 'cb-cta-secondary'; em.textContent = 'Send me info by email';
+          em.onclick = function () { handleCTA('Send me info by email'); };
+          div.appendChild(em);
+        }
+        msgs.appendChild(div); scrollToLatestBotMsg();
       }
       if (skipIntro) { renderCtaButtons(); return; }
       botReply("Awesome! Based on what you've shared, the best next step is a quick call or Google Meet to go over your project!", renderCtaButtons, 1200);
@@ -1586,7 +1621,7 @@
       var sendBtn = document.querySelector('#cb-input-bar button');
       if (sendBtn) sendBtn.disabled = true;
       botReply(choice === 'Book a Google Meet'
-        ? "Great! We're opening the calendar now. Pick a time that works for you. A confirmation will also be sent to " + lead.email + '!'
+        ? "Great! We're opening the calendar now. Pick a time that works for you." + (lead.email ? ' A confirmation will also be sent to ' + lead.email + '!' : '')
         : 'Perfect! We\'ll send everything over to ' + lead.email + ' shortly. Talk soon!');
       submitLead();
       /* Conversation reached its natural end (lead captured) — nothing
@@ -1775,30 +1810,56 @@
         });
         return;
       }
+      /* An explicit refusal ("I don't want to give my phone number") is
+       * checked BEFORE the generic detour branch below — without this it
+       * fell into that branch, the AI acknowledged the refusal, and the
+       * widget then steered back to the still-open phone step exactly like
+       * any other detour, re-asking for the very thing just refused. A
+       * refusal instead skips the field outright (lead.phone stays empty)
+       * and advances straight to the next field in the series, the same
+       * way a valid answer would, just with nothing recorded. */
+      if (step === 5 && looksLikeContactRefusal(val)) {
+        chatHistory.push({ role: 'user', content: val });
+        step = 6;
+        var phoneSkipReply = "No problem, we don't need a phone number then. What's the best email address to reach you?";
+        chatHistory.push({ role: 'assistant', content: phoneSkipReply });
+        botReply(phoneSkipReply); return;
+      }
       if (step === 5 && !looksLikePhoneAttempt(val)) {
         /* Doesn't look like a phone number at all — treat as a genuine
          * conversational detour (a question, "wait", etc.) rather than
          * validating it as one. Answer naturally via the AI, then return
          * to the still-active phone step instead of re-asking immediately
-         * with no acknowledgment of what was just said. Appended to the
-         * SAME bubble as the AI's answer (one consultant voice continuing
-         * its own sentence) rather than opening a second, disconnected
-         * bot message — only falls back to a separate botReply() if the
-         * AI's own reply already ended with a question of its own. */
+         * with no acknowledgment of what was just said. Always appended to
+         * the SAME bubble as the AI's answer (one consultant voice
+         * continuing its own sentence) rather than opening a second,
+         * disconnected bot message. */
         askAI(val, false, function (reply) {
           if (reply === null) return;
-          if (!appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best phone number to reach you?")) {
-            botReply("Whenever you're ready, what's the best phone number to reach you?");
-          }
+          appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best phone number to reach you?");
         });
+        return;
+      }
+      /* Same refusal short-circuit for email. Unlike phone, email can't
+       * just be silently skipped: it's the only contact channel send-lead.js
+       * requires to deliver the lead at all (api/send-lead.js still rejects
+       * a submission with no email), so this offers the next-best
+       * alternative instead of repeating the question — a phone callback
+       * if a phone number is already on file, or direct contact info if
+       * not — then moves on to the final step rather than looping. */
+      if (step === 6 && looksLikeContactRefusal(val)) {
+        chatHistory.push({ role: 'user', content: val });
+        var emailSkipReply = lead.phone
+          ? "No worries! We'll have our team reach out by phone at " + lead.phone + " instead."
+          : "No worries! Feel free to reach us directly at 406-936-3049 or contact@demskigroup.com whenever you're ready.";
+        chatHistory.push({ role: 'assistant', content: emailSkipReply });
+        botReply(emailSkipReply, function () { showFinalCTA(true); });
         return;
       }
       if (step === 6 && !looksLikeEmailAttempt(val)) {
         askAI(val, false, function (reply) {
           if (reply === null) return;
-          if (!appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best email address to reach you?")) {
-            botReply("Whenever you're ready, what's the best email address to reach you?");
-          }
+          appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best email address to reach you?");
         });
         return;
       }
