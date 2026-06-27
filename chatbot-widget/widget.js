@@ -92,6 +92,13 @@
    * data-correction request rather than feeding it to the AI as ordinary
    * conversation, which would otherwise ignore it or restart qualification. */
   var correctingField = null;
+  /* Set true the first time the user explicitly refuses to give their name
+   * (step 4). The first refusal gets one gentle nudge offering a nickname/
+   * business name as an easier alternative; a second refusal after that
+   * stops asking and advances with a placeholder instead of looping forever
+   * — mirrors the UX fix already applied to the phone/email steps, where a
+   * refusal advances the flow rather than re-asking the same question. */
+  var nameRefusalAcknowledged = false;
   var expanded = false;
   /* True from the moment the user takes any real conversational action
    * (MCQ pick, typed message, idle-reply click) — independent of `expanded`,
@@ -744,27 +751,89 @@
       return trimmed.length > 0 && trimmed.indexOf(' ') === -1;
     }
 
-    /* Detects an explicit "I don't want to give that out" on the phone/email
-     * steps, generalized from isValidName's own refusal-phrase lists below
-     * (exactRefusalPhrases/refusalSubstrings) so all three contact fields
-     * recognize the same vocabulary instead of phone/email having no refusal
-     * handling at all. Without this, a refusal isn't phone/email-shaped, so
-     * it fell into the generic AI-detour branch, which acknowledged it and
-     * then re-asked the exact same question, since detour resume always
-     * steers back to the still-open step, never the next one — visibly
-     * ignoring a "no" and asking again. Checked BEFORE the detour branch so
-     * a refusal short-circuits straight to skipping the field instead of
-     * ever reaching the AI. */
+    /* Detects an explicit "I don't want to give that out" (or a hostile
+     * dismissal) on the name/phone/email steps — checked BEFORE the
+     * AI-detour branch so a refusal short-circuits straight to skipping/
+     * advancing the field instead of ever reaching the AI blind (the AI
+     * call on that detour branch has no idea a name/phone/email question
+     * is even open — no stepContext is sent on that path — so it free-
+     * associates a generic reply and the widget then re-asks the same
+     * question on top of it, visibly ignoring the refusal).
+     *
+     * v1 of this function was a flat phrase list ("don't want to give",
+     * "don't want to share", "don't want to tell", ...) and missed "I
+     * don't want to MENTION it" outright — any verb not hand-typed into the
+     * list slips through with zero warning, and there's always another verb
+     * (mention, disclose, provide, hand over, ...) nobody thought to add.
+     * Replaced with a negation + disclosure-verb PATTERN so new phrasing of
+     * the same intent is caught automatically instead of needing its own
+     * list entry every time QA finds another gap. can't/cannot are
+     * deliberately excluded from the negation side: those show up
+     * constantly in ordinary questions to the bot ("can't you just tell me
+     * a price range?") that are not self-refusals, and pairing them with a
+     * disclosure verb produced false positives in testing. */
     function looksLikeContactRefusal(v) {
-      var lower = v.trim().toLowerCase().replace(/[.!?]+$/, '');
-      var exactPhrases = ['no', 'nope', 'nah', 'skip', 'not telling', 'no thanks', 'rather not', 'prefer not to say', 'anonymous', 'not comfortable sharing'];
-      if (exactPhrases.indexOf(lower) > -1) return true;
-      var substrings = [
-        "don't want to give", 'dont want to give', "won't give", 'wont give',
-        "don't want to share", 'dont want to share', "don't want to tell", 'dont want to tell',
-        "won't tell", 'wont tell', 'not comfortable', 'rather not', 'prefer not to say',
-        'no thanks', 'not telling', "don't have a phone", "i'd rather not", 'id rather not',
+      /* iOS/macOS (and many keyboards) auto-convert a typed straight
+       * apostrophe into a curly one (U+2019) as you type — "don't" the user
+       * actually sends can be "don’t", which none of the `'?`-based
+       * regexes below would match. Normalizing both curly quote characters
+       * to a plain ASCII apostrophe up front means every check after this
+       * line doesn't need its own Unicode-aware variant. */
+      var lower = v.trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[.!?]+$/, '');
+
+      // Exact whole-message refusals/hostility — only fires on an exact
+      // match so short common words ("no", "skip") don't trip on every
+      // message that happens to contain them as part of an unrelated word.
+      var exactPhrases = [
+        'no', 'nope', 'nah', 'not telling', 'no thanks', 'rather not',
+        'prefer not to say', 'anonymous', 'not comfortable sharing',
+        'i won\'t', 'i wont', 'won\'t', 'wont', 'i refuse', 'refuse',
+        'never', 'no way', 'not happening', 'absolutely not',
       ];
+      if (exactPhrases.indexOf(lower) > -1) return true;
+
+      /* Same refusal/hostility vocabulary, but matched as a whole word or
+       * phrase ANYWHERE in the message (word-boundary regex, not naive
+       * substring — plain .indexOf() would also match "no" inside "Reno"
+       * or "skip" inside "skipper"). Covers a refusal embedded in a fuller
+       * sentence ("nah, I'd rather skip that one", "ugh, just stop asking
+       * me this") rather than only a bare one-word reply. Hostile/dismissive
+       * non-answers are included here too — they must never fall through
+       * to isValidName/looksLikePhoneAttempt and get accepted as the
+       * literal value (the "Nice to meet you, shut up!" bug). */
+      var boundaryPhrases = /\b(skip|pass|whatever|forget it|stop asking|stop it|go away|leave me alone|none of your business|mind your own business|who cares|shut up|get lost|piss off|screw off)\b/;
+      if (boundaryPhrases.test(lower)) return true;
+
+      /* Negation + disclosure-verb pattern: catches "I don't want to
+       * GIVE/SHARE/TELL/MENTION/PROVIDE/DISCLOSE/REVEAL/SAY ..." in any
+       * wording. Both halves must be present so an unrelated sentence that
+       * only contains one half ("can you tell me about pricing" — verb, no
+       * negation) never matches. can't/cannot are deliberately excluded
+       * from the negation side: those show up constantly in ordinary
+       * questions to the bot ("can't you just tell me a price range?")
+       * that are not self-refusals, and pairing them with a disclosure
+       * verb produced false positives in testing. */
+      var negation = /\b(don'?t want to|dont want to|won'?t|will not|do not want to|not going to|not comfortable|rather not|prefer not)\b/;
+      /* Word stems + \w* rather than exact verbs, so inflections (sharing,
+       * shared, telling, told, mentioned, ...) match without listing every
+       * form by hand — \w* allows zero-or-more trailing letters, so the
+       * bare stem itself still matches too (give/give\w*, tell/tell\w*).
+       * gave/told/said are irregular past tenses and listed separately
+       * since they don't share a stem with their present-tense form. */
+      var disclosureVerb = /\b(giv\w*|gave|shar\w*|tell\w*|told|mention\w*|provid\w*|disclos\w*|say\w*|said|reveal\w*|hand over|handing over|handed over)\b/;
+      if (negation.test(lower) && disclosureVerb.test(lower)) return true;
+
+      /* Bare "not" + the GERUND form specifically ("not telling", "not
+       * giving", "not sharing", "not mentioning", ...) — narrower than
+       * broadening the negation set above to bare "not" + any base verb,
+       * which would false-flag ordinary sentences like "I'm not sure, can
+       * you tell me more" (bare "not" elsewhere in the sentence + "tell"
+       * used for an unrelated ask). The gerund-right-after-"not" shape is
+       * specific enough to "I am not [verb]-ing this" that it doesn't share
+       * that false-positive risk. */
+      if (/\bnot\s+\w*\s*(telling|giving|sharing|mentioning|providing|disclosing|saying|revealing|handing over)\b/.test(lower)) return true;
+
+      var substrings = ["don't have a phone", 'dont have a phone', "i'd rather not", 'id rather not'];
       return substrings.some(function (k) { return lower.indexOf(k) > -1; });
     }
 
@@ -903,6 +972,93 @@
       return ''; /* correction intent detected, but no field named yet — ask which one */
     }
 
+    /* The three resolve*Refusal functions below are each reachable from TWO
+     * different triggers: the widget's own local looksLikeContactRefusal()
+     * regex/keyword check (fast, free, catches the common/anticipated
+     * phrasing), and the AI's [[REFUSED]] marker (a second line of defense
+     * for phrasing the local check doesn't recognize — see stepContext in
+     * the step 4/5/6 askAI calls below). Reached via the local check, there
+     * is no existing bot bubble for this turn yet, so aiReply is omitted
+     * and a fresh botReply() is used. Reached via the AI, askAI has ALREADY
+     * rendered the AI's own empathetic acknowledgment as a bubble before
+     * this runs — calling botReply() again here would stack a second,
+     * separate bubble right under it, which is exactly the "two questions/
+     * messages back to back" bug fixed earlier in this file, just
+     * reintroduced through this new path. Passing aiReply merges the
+     * follow-up line into that same already-rendered bubble instead via
+     * appendResumeLineToLastBotMsg, consistent with every other detour-
+     * resume in this file. */
+
+    /* First occurrence: acknowledge and explicitly offer the easiest
+     * alternative (nickname/first name/business name), staying on step 4
+     * for one more try — matches the spirit of the pre-existing isValidName
+     * rejection message. Second occurrence: stop asking, fall back to a
+     * generic placeholder so the conversation can actually progress
+     * (lead.name still has to be non-empty — api/send-lead.js requires it)
+     * instead of looping on the same question forever. */
+    function resolveNameRefusal(aiReply) {
+      var hasAiReply = aiReply !== undefined && aiReply !== null;
+      if (!nameRefusalAcknowledged) {
+        nameRefusalAcknowledged = true;
+        var followUp = "Even a first name, nickname, or business name works great, just so our team knows who they're chatting with. What would you like us to call you?";
+        if (hasAiReply) {
+          if (!appendResumeLineToLastBotMsg(aiReply, followUp)) botReply(followUp);
+        } else {
+          var reply = 'No worries at all! ' + followUp;
+          chatHistory.push({ role: 'assistant', content: reply });
+          botReply(reply);
+        }
+      } else {
+        lead.name = 'Friend';
+        step = 5;
+        var followUp2 = 'What\'s the best phone number to reach you?';
+        if (hasAiReply) {
+          if (!appendResumeLineToLastBotMsg(aiReply, followUp2)) botReply(followUp2);
+        } else {
+          var reply2 = 'No problem, we\'ll just go with "Friend" for now. ' + followUp2;
+          chatHistory.push({ role: 'assistant', content: reply2 });
+          botReply(reply2);
+        }
+      }
+    }
+
+    /* Phone is genuinely optional — a single refusal skips it outright (no
+     * two-stage nudge, unlike name/email) and advances straight to email. */
+    function resolvePhoneRefusal(aiReply) {
+      step = 6;
+      var followUp = "What's the best email address to reach you?";
+      if (aiReply !== undefined && aiReply !== null) {
+        if (!appendResumeLineToLastBotMsg(aiReply, 'Whenever you\'re ready, ' + followUp.charAt(0).toLowerCase() + followUp.slice(1))) {
+          botReply(followUp);
+        }
+      } else {
+        var reply = "No problem, we don't need a phone number then. " + followUp;
+        chatHistory.push({ role: 'assistant', content: reply });
+        botReply(reply);
+      }
+    }
+
+    /* Email can't be silently skipped like phone — api/send-lead.js still
+     * requires it to deliver the lead — so this offers the next-best
+     * alternative (a phone callback if one is on file, direct contact info
+     * otherwise) and moves straight to the final CTA rather than looping. */
+    function resolveEmailRefusal(aiReply) {
+      var followUp = lead.phone
+        ? "We'll have our team reach out by phone at " + lead.phone + ' instead.'
+        : 'Feel free to reach us directly at 406-936-3049 or contact@demskigroup.com whenever you\'re ready.';
+      if (aiReply !== undefined && aiReply !== null) {
+        if (appendResumeLineToLastBotMsg(aiReply, followUp)) {
+          showFinalCTA(true);
+        } else {
+          botReply(followUp, function () { showFinalCTA(true); });
+        }
+      } else {
+        var reply = 'No worries! ' + followUp;
+        chatHistory.push({ role: 'assistant', content: reply });
+        botReply(reply, function () { showFinalCTA(true); });
+      }
+    }
+
 
     /* ── AI CALL ──
      * Used for every typed message (LLM-first: the model always sees and
@@ -922,8 +1078,14 @@
      * (e.g. "can someone contact me") — the AI defers entirely to the
      * widget's own validated name/phone/email flow instead of asking for
      * those itself, so the caller should hand off to enterContactFlow()
-     * rather than treating this like an ordinary redirect. All signal
-     * fields are null when no stepContext was supplied. */
+     * rather than treating this like an ordinary redirect. refused is true
+     * when stepContext's question was asking for name/phone/email and the
+     * AI judged the message an explicit refusal or hostile dismissal rather
+     * than a genuine attempt — the second line of defense behind the
+     * widget's own local looksLikeContactRefusal() regex/keyword check, for
+     * phrasing that check doesn't recognize (the AI actually understands
+     * language; the local check is necessarily a finite pattern list). All
+     * signal fields are null when no stepContext was supplied. */
     function askAI(userText, silent, onDone, stepContext) {
       if (aiRequestInFlight) return;
       aiRequestInFlight = true;
@@ -951,7 +1113,7 @@
         addBotMsg(reply);
         resetIdleTimer();
         setTimeout(function () { inputEl.focus(); }, 100);
-        if (onDone) onDone(reply, data.stepAnswered === true, data.matchedOption || null, data.redirected === true, data.collectContact === true);
+        if (onDone) onDone(reply, data.stepAnswered === true, data.matchedOption || null, data.redirected === true, data.collectContact === true, data.refused === true);
       })
       .catch(function () {
         aiRequestInFlight = false;
@@ -959,7 +1121,7 @@
         inputEl.disabled = false;
         addBotMsg("Sorry, I'm having trouble connecting right now. Please call us at 406-936-3049 or email contact@demskigroup.com.");
         resetIdleTimer();
-        if (onDone) onDone(null, false, null, false, false);
+        if (onDone) onDone(null, false, null, false, false, false);
       });
     }
 
@@ -1791,23 +1953,44 @@
         return;
       }
 
+      /* An explicit name refusal or hostile dismissal ("shut up") is
+       * checked BEFORE the shape-based detour below, same as phone/email —
+       * without this, a refusal phrased in more than 4 words (e.g. "I don't
+       * want to mention it") never reaches isValidName at all (it fails
+       * looksLikeNameAttempt's word-count gate first) and instead loops
+       * through the blind AI detour forever, and a SHORT hostile dismissal
+       * ("shut up") was passing every shape check and getting accepted as
+       * the literal name. */
+      if (step === 4 && looksLikeContactRefusal(val)) {
+        chatHistory.push({ role: 'user', content: val });
+        resolveNameRefusal();
+        return;
+      }
       /* Step 4 (name) now uses the same shape-based detour check as
        * phone/email (looksLikeNameAttempt) instead of isOffTopic's narrow
        * keyword denylist — a real question like "who is andrew" contains
        * none of isOffTopic's keywords (price/cost/services/help/contact),
-       * so it used to fall straight through into isValidName() and get
+       * so it used to fall straight through into isValidName() and got
        * flatly rejected as a refusal, with the actual question never
        * answered. Now any message that isn't name-shaped (a question, a
        * multi-clause sentence, "I have one question before I tell you my
        * name who is andrew") is answered by the AI first, then the name
-       * prompt resumes in the same bubble. */
+       * prompt resumes in the same bubble.
+       *
+       * stepContext is passed here (and on the phone/email detours below)
+       * specifically so the AI can return [[REFUSED]] for refusal/hostile
+       * phrasing the local looksLikeContactRefusal() regex doesn't
+       * recognize — a second, language-understanding line of defense
+       * behind a necessarily finite local pattern list, instead of relying
+       * on that list alone to anticipate every possible phrasing. */
       if (step === 4 && !looksLikeNameAttempt(val)) {
-        askAI(val, false, function (reply) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact, refused) {
           if (reply === null) return; /* error path already showed a message */
+          if (refused) { resolveNameRefusal(reply); return; }
           if (!appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's your name?")) {
             botReply("For now: What's your name?");
           }
-        });
+        }, { question: "What's your name?" });
         return;
       }
       /* An explicit refusal ("I don't want to give my phone number") is
@@ -1820,10 +2003,8 @@
        * way a valid answer would, just with nothing recorded. */
       if (step === 5 && looksLikeContactRefusal(val)) {
         chatHistory.push({ role: 'user', content: val });
-        step = 6;
-        var phoneSkipReply = "No problem, we don't need a phone number then. What's the best email address to reach you?";
-        chatHistory.push({ role: 'assistant', content: phoneSkipReply });
-        botReply(phoneSkipReply); return;
+        resolvePhoneRefusal();
+        return;
       }
       if (step === 5 && !looksLikePhoneAttempt(val)) {
         /* Doesn't look like a phone number at all — treat as a genuine
@@ -1834,10 +2015,11 @@
          * the SAME bubble as the AI's answer (one consultant voice
          * continuing its own sentence) rather than opening a second,
          * disconnected bot message. */
-        askAI(val, false, function (reply) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact, refused) {
           if (reply === null) return;
+          if (refused) { resolvePhoneRefusal(reply); return; }
           appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best phone number to reach you?");
-        });
+        }, { question: "What's the best phone number to reach you?" });
         return;
       }
       /* Same refusal short-circuit for email. Unlike phone, email can't
@@ -1849,22 +2031,28 @@
        * not — then moves on to the final step rather than looping. */
       if (step === 6 && looksLikeContactRefusal(val)) {
         chatHistory.push({ role: 'user', content: val });
-        var emailSkipReply = lead.phone
-          ? "No worries! We'll have our team reach out by phone at " + lead.phone + " instead."
-          : "No worries! Feel free to reach us directly at 406-936-3049 or contact@demskigroup.com whenever you're ready.";
-        chatHistory.push({ role: 'assistant', content: emailSkipReply });
-        botReply(emailSkipReply, function () { showFinalCTA(true); });
+        resolveEmailRefusal();
         return;
       }
       if (step === 6 && !looksLikeEmailAttempt(val)) {
-        askAI(val, false, function (reply) {
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact, refused) {
           if (reply === null) return;
+          if (refused) { resolveEmailRefusal(reply); return; }
           appendResumeLineToLastBotMsg(reply, "Whenever you're ready, what's the best email address to reach you?");
-        });
+        }, { question: "What's the best email address to reach you?" });
         return;
       }
       if (step === 4) {
         if (!isValidName(val)) {
+          /* A refusal-shaped message that slipped past looksLikeContactRefusal
+           * above (e.g. one of isValidName's own refusal phrases that isn't
+           * also in looksLikeContactRefusal's list) still gets routed through
+           * the same acknowledge-then-fallback flow instead of repeating
+           * this generic rejection forever — anything else invalid (a typo,
+           * an email/phone typed into the name field) just gets asked again,
+           * since that's a format problem the user can correct, not a
+           * refusal that needs a fallback. */
+          if (looksLikeContactRefusal(val)) { resolveNameRefusal(); return; }
           botReply("That's completely fine. We usually ask for a name so our team knows who they're speaking with. If you'd prefer not to share it, you can provide a first name, nickname, or business name instead.");
           return; /* stays on step 4 — never advances to phone on an invalid/refused name */
         }
