@@ -847,7 +847,14 @@
        * mail (mirrors isValidName's own "no name" gap-fix for the name
        * field) so this is caught locally, with zero dependency on the AI's
        * per-turn judgment call, on every contact step. */
-      if (/\bdon'?t have (a|an|any)\s*(phone|number|email|e-?mail|mail)\b/.test(lower)) return true;
+      /* Article is OPTIONAL ("have\s*(a|an|any)?\s*") — "I don't have
+       * email"/"i dont have phone" (no article at all) is at least as
+       * common as "I don't have an email" in real typed input, and a
+       * mandatory article here was the exact gap that let "sorry but i
+       * dont have email" fall through Layer 1 and into the AI-only path
+       * during QA, re-triggering the same contradictory-resume-line bug
+       * for a phrasing one step short of what the first fix covered. */
+      if (/\bdon'?t have\s*(a|an|any)?\s*(phone|number|email|e-?mail|mail)\b/.test(lower)) return true;
       if (/\bno\s+(phone|number|email|e-?mail|mail)\b/.test(lower)) return true;
       var substrings = ["i'd rather not", 'id rather not'];
       return substrings.some(function (k) { return lower.indexOf(k) > -1; });
@@ -1694,25 +1701,36 @@
     }
 
     /* ── OPTIONAL NOTES (free text, skippable) ── */
+    var NOTES_QUESTION = "Anything else you'd like us to know about your project?";
+
+    /* Shared by showNotesStep's initial render and the LLM-first detour's
+     * "still open" resume below — re-shows just the Skip button without
+     * repeating the bot's question text (consistent with renderStep0Buttons'
+     * quieter re-show style rather than showBudgetStep's re-ask-then-show
+     * style, since re-asking "anything else?" again right after the AI just
+     * answered a real question would read as redundant friction on a step
+     * that's supposed to feel optional/low-pressure). */
+    function renderNotesSkipButton() {
+      showInputBar();
+      inputEl.placeholder = 'Type here, or tap Skip...';
+      setTimeout(function () { inputEl.focus(); }, 50);
+      var oldSkip = document.getElementById('cb-notes-skip'); if (oldSkip) oldSkip.remove();
+      var div = document.createElement('div'); div.className = 'cb-qbtns cb-grid'; div.id = 'cb-notes-skip';
+      div.style.setProperty('grid-template-columns', '1fr', 'important');
+      var skip = document.createElement('button'); skip.textContent = 'Skip';
+      skip.onclick = function () {
+        var el = document.getElementById('cb-notes-skip'); if (el) el.remove();
+        addUserMsg('Skip');
+        goToContactStep("Thanks, this helps a lot!");
+      };
+      div.appendChild(skip);
+      msgs.appendChild(div); scrollToLatestBotMsg();
+    }
+
     function showNotesStep() {
       step = 3; resetIdleTimer();
       hideInputBar();
-      botReply("Anything else you'd like us to know about your project?", function () {
-        showInputBar();
-        inputEl.placeholder = 'Type here, or tap Skip...';
-        setTimeout(function () { inputEl.focus(); }, 50);
-        var oldSkip = document.getElementById('cb-notes-skip'); if (oldSkip) oldSkip.remove();
-        var div = document.createElement('div'); div.className = 'cb-qbtns cb-grid'; div.id = 'cb-notes-skip';
-        div.style.setProperty('grid-template-columns', '1fr', 'important');
-        var skip = document.createElement('button'); skip.textContent = 'Skip';
-        skip.onclick = function () {
-          var el = document.getElementById('cb-notes-skip'); if (el) el.remove();
-          addUserMsg('Skip');
-          goToContactStep("Thanks, this helps a lot!");
-        };
-        div.appendChild(skip);
-        msgs.appendChild(div); scrollToLatestBotMsg();
-      });
+      botReply(NOTES_QUESTION, renderNotesSkipButton);
     }
 
     /* Single entry point into contact collection (called both when the
@@ -1956,16 +1974,49 @@
         return;
       }
 
-      /* Step 3: optional notes free text — save it, then move straight into
-       * contact info collection (the Skip button covers the empty case). */
+      /* Step 3: optional notes free text. Previously this step treated
+       * EVERY typed message as project-notes content and advanced
+       * immediately, with no detour handling at all — unlike steps 0-2,
+       * which are LLM-first. That's exactly why a genuine question typed
+       * here ("I want to know about andrew", "what services do you
+       * offer?") got silently swallowed into lead.project_notes and the
+       * flow advanced straight to "What's your name?" without ever
+       * answering it: the question was never even sent to the AI. Now
+       * LLM-first like steps 0-2: the model answers/acknowledges what was
+       * actually typed, then signals via stepAnswered whether that message
+       * was genuine project-notes content (free text, so there's no fixed
+       * option list to map to, hence no local-exact-option-match pre-check
+       * the way steps 0-2 have) or something else entirely that still
+       * needs a real answer before this step can advance. */
       if (step === 3) {
         var elS = document.getElementById('cb-notes-skip'); if (elS) elS.remove();
-        lead.project_notes = val;
-        /* The user's own description of their project/pain points — exactly
-         * the kind of detail that should be remembered and referenced
-         * later, so it has to actually reach chatHistory, not just lead. */
-        chatHistory.push({ role: 'user', content: val });
-        goToContactStep("Thanks, this helps a lot!");
+        askAI(val, false, function (reply, stepAnswered, matchedOption, redirected, collectContact) {
+          if (collectContact) {
+            enterContactFlow();
+          } else if (stepAnswered) {
+            /* The user's own description of their project/pain points —
+             * exactly the kind of detail that should be remembered and
+             * referenced later. askAI already pushed val into chatHistory
+             * (silent=false), so only lead.project_notes needs setting
+             * here. introMsg is '' (not the old fixed "Thanks, this helps
+             * a lot!"): the AI's own reply just acknowledged the notes
+             * content naturally, and goToContactStep('') is the same
+             * no-redundant-intro convention enterContactFlow already uses
+             * for "AI already replied, now ask the next required field". */
+            lead.project_notes = val;
+            goToContactStep('');
+          } else if (!redirected) {
+            /* Not notes content, and the AI's own reply didn't ask a new
+             * question of its own (e.g. it just answered a factual
+             * question like "who is andrew") — resume this same step by
+             * re-showing the Skip button, without re-asking the notes
+             * question itself or advancing the state machine. */
+            renderNotesSkipButton();
+          }
+          /* redirected: the AI's own reply already asked something new and
+           * specific — show no buttons, just wait for the next typed
+           * message, same convention as steps 0-2. */
+        }, { question: NOTES_QUESTION });
         return;
       }
 
