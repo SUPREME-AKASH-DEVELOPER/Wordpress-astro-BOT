@@ -2143,10 +2143,25 @@
           return;
         }
 
-        /* No correction intent recognized — stay in the post-lead state
-         * with a natural acknowledgment rather than restarting
-         * qualification, showing MCQs, or asking new business questions. */
-        botReply("Thanks for the message! If you'd like to update your name, phone, or email, just let me know. Otherwise, feel free to book a call or have us follow up by email using the buttons above.");
+        /* No correction intent recognized — the lead is already captured,
+         * so there's no qualification question left to advance (unlike
+         * steps 0-2) and therefore no stepContext to send. Without
+         * stepContext, formatStepContext appends no marker instructions, so
+         * the server never asks for one and the model just replies in
+         * plain natural text. This is the same shape as the free-chat call
+         * after the teaser's typed-text path (openFromTeaser's
+         * `askAI(prefillText, false)`), reused here for the same reason:
+         * a normal conversational turn with no qualification step
+         * attached. SYSTEM_PROMPT's own "never ask for name/phone/email
+         * yourself" rule (api/chat.js) already prevents the model from
+         * re-collecting contact info on this path same as every other
+         * step, and the model can see the lead's name/phone/email already
+         * sitting in chatHistory from when each was originally collected.
+         * askAI renders the reply itself via addBotMsg, so nothing further
+         * is needed after the call. This replaces the old hardcoded
+         * "Thanks for the message..." fallback that fired identically for
+         * every message regardless of content, the bug reported in QA. */
+        askAI(val, false);
         return;
       }
     }
