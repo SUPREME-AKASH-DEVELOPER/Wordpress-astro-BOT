@@ -833,7 +833,23 @@
        * that false-positive risk. */
       if (/\bnot\s+\w*\s*(telling|giving|sharing|mentioning|providing|disclosing|saying|revealing|handing over)\b/.test(lower)) return true;
 
-      var substrings = ["don't have a phone", 'dont have a phone', "i'd rather not", 'id rather not'];
+      /* "I don't have a phone/email/mail" or bare "no phone"/"no email" —
+       * the same "this contact method doesn't exist for me" shape regardless
+       * of which field is being asked about. Previously hardcoded to phone
+       * only ("don't have a phone"), which is exactly why the email step's
+       * identical phrasing ("I don't have any mail", "I don't have an
+       * email", "no email") fell through this entire function with no
+       * match: the detour went straight to the AI instead, which classified
+       * "I don't have any mail" as a normal (non-refused) turn in QA, so the
+       * email-still-open resume line got appended right after a reply that
+       * had already conceded "we'll use phone instead" — two contradictory
+       * sentences in one bubble. Generalized once across phone/number/email/
+       * mail (mirrors isValidName's own "no name" gap-fix for the name
+       * field) so this is caught locally, with zero dependency on the AI's
+       * per-turn judgment call, on every contact step. */
+      if (/\bdon'?t have (a|an|any)\s*(phone|number|email|e-?mail|mail)\b/.test(lower)) return true;
+      if (/\bno\s+(phone|number|email|e-?mail|mail)\b/.test(lower)) return true;
+      var substrings = ["i'd rather not", 'id rather not'];
       return substrings.some(function (k) { return lower.indexOf(k) > -1; });
     }
 
