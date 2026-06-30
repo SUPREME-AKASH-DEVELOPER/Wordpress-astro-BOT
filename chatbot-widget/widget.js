@@ -1272,7 +1272,7 @@
       document.getElementById('cb-gc-close').onclick = function () {
         if (cardTimer) { clearTimeout(cardTimer); cardTimer = null; }
         dismissGreetingCard();
-        showGreetingBubble();
+        scheduleLauncherBadge();
       };
       document.getElementById('cb-gc-yes').onclick   = function () { openFromTeaser('Yes'); };
       document.getElementById('cb-gc-no').onclick    = function () { openFromTeaser('No'); };
@@ -1302,7 +1302,7 @@
         if (gcInputFocused) return; /* timer stays suspended until blur */
         cardTimer = setTimeout(function () {
           dismissGreetingCard();
-          showGreetingBubble();
+          scheduleLauncherBadge();
         }, 60000);
       }
       gcInputEl.addEventListener('focus', function () {
@@ -1327,7 +1327,10 @@
         gcTeardownActivityListeners = null;
       };
 
-      /* No interaction on the card → hide it and move to the small teaser bubble. */
+      /* No interaction on the card → hide it, then wait silently (no visible
+       * bubble) until the badge/shake/sound moment, where the small teaser
+       * bubble now appears alongside them instead of arriving on its own
+       * beforehand. */
       restartCardTimer();
     }
 
@@ -1346,8 +1349,22 @@
       setTimeout(function () { if (c.parentNode) c.remove(); }, 400);
     }
 
-    /* ── GREETING BUBBLE (small, shown after the card) ── */
-    function showGreetingBubble() {
+    /* ── GREETING BUBBLE (small) ──
+     * Previously shown on its own, silently, 40s before the badge/shake/
+     * sound stage — a popup with no sound or motion arriving on its own,
+     * unprompted, is exactly what was reported as unwanted. Split into two
+     * pieces: scheduleLauncherBadge() is the silent wait (no DOM, nothing
+     * visible) that replaces the old immediate bubble display after the
+     * card is dismissed, and renderGreetingBubble() is the actual bubble
+     * markup, now called FROM showLauncherBadge() below so the bubble only
+     * ever appears in the same instant as the badge/shake/notification
+     * sound — one single noticeable moment instead of two separate ones. */
+    function scheduleLauncherBadge() {
+      if (expanded || teaserFlowDone) return;
+      bubbleTimer = setTimeout(showLauncherBadge, 40000);
+    }
+
+    function renderGreetingBubble() {
       if (expanded || teaserFlowDone || document.getElementById('cb-greeting-bubble')) return;
       var b = document.createElement('div'); b.id = 'cb-greeting-bubble'; b.className = 'cb-teaser-bubble';
       b.innerHTML =
@@ -1360,8 +1377,6 @@
       });
       document.getElementById('cb-bclose').onclick = function () { cancelTeaserFlow(); dismissBubble(); };
       document.getElementById('cb-bopen').onclick   = function () { cancelTeaserFlow(); openFromTeaser(null); };
-      /* No interaction on the bubble for 40s → show the red badge. */
-      bubbleTimer = setTimeout(showLauncherBadge, 40000);
     }
 
     function dismissBubble() {
@@ -1400,7 +1415,11 @@
       idleBubbleTimer = setTimeout(dismissIdleBubble, 7000);
     }
 
-    /* No interaction on the bubble for 40s → red badge on the launcher avatar. */
+    /* No interaction since the card was dismissed for 40s (scheduleLauncherBadge)
+     * → red badge + shake + notification sound on the launcher avatar, AND
+     * the small "Hey! Do you have any questions?" bubble, all in the same
+     * moment — the bubble used to arrive 40s earlier than this on its own,
+     * silently. */
     function showLauncherBadge() {
       if (expanded || teaserFlowDone) return;
       var badge = document.getElementById('cb-launcher-badge');
@@ -1413,6 +1432,7 @@
         launcher.classList.add('cb-shake');
         setTimeout(function () { launcher.classList.remove('cb-shake'); }, 2000);
       }
+      renderGreetingBubble();
       /* Still no interaction for another 10s → auto-open with the nudge message. */
       badgeTimer = setTimeout(autoOpenWithNudge, 10000);
     }
