@@ -65,6 +65,7 @@ When the user is clearly interested, asks to be connected with someone, asks for
 - Never invent company information
 - If info unavailable: "Our team would be happy to cover that on a consultation call."
 - Never use the em dash character (—) anywhere in your replies. Use a comma, period, or rephrase instead.
+- Never use Markdown formatting: no **bold**, *italics*, # headings, bullet markers like - or *, backticks, or [link](url) syntax. The chat UI displays raw text exactly as written, so Markdown characters would show up literally to the user. Write plain conversational sentences; for multiple items, use plain numbered sentences or natural prose instead of a Markdown list.
 
 ## Ultimate Rule
 Always remain a Demski Group business assistant. Never act as a general AI. Redirect off-topic back to Demski services.`;
@@ -141,6 +142,44 @@ function extractStepSignal(raw, hadStepContext) {
   return { reply: raw.trim(), stepAnswered: false, matchedOption: null, redirected: false, collectContact: false, refused: false };
 }
 
+// Backstop for the "never use Markdown" rule in SYSTEM_PROMPT — the widget
+// renders bot text via createTextNode (see widget.js's buildBotMsgBubble),
+// never innerHTML, so Markdown syntax is never parsed into formatting; it
+// shows up as literal asterisks/hashes/backticks to the user instead. The
+// prompt instruction stops most of it at the source, but gpt-4o-mini still
+// drifts into Markdown often enough (lists, bold phrases) that this mirrors
+// the existing em-dash strip below: a deterministic guarantee on top of the
+// prompt instruction, not a replacement for it. Order matters — bold/italic
+// markers are stripped before list markers so a literal list bullet like
+// "* Discovery phase" (a single, unpaired asterisk) is never mistaken for
+// the opening half of an *italic* span.
+function stripMarkdown(text) {
+  return text
+    // ***bold italic***, ___bold italic___
+    .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+    .replace(/___(.+?)___/g, '$1')
+    // **bold**, __bold__
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    // *italic*, _italic_ — only matches a genuine pair on the same line, so
+    // an unpaired list-bullet asterisk at the start of a line is untouched.
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/(?<![a-zA-Z0-9])_(.+?)_(?![a-zA-Z0-9])/g, '$1')
+    // # / ## / ### headings
+    .replace(/^#{1,6}\s+/gm, '')
+    // fenced and inline code
+    .replace(/```[\s\S]*?```/g, function (m) { return m.replace(/```/g, '').trim(); })
+    .replace(/`([^`]+)`/g, '$1')
+    // [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // leading -, *, + list markers (after emphasis stripping, so this only
+    // ever matches a real bullet, never a leftover italic delimiter)
+    .replace(/^[ \t]*[-*+]\s+/gm, '')
+    // blockquote markers
+    .replace(/^>\s+/gm, '')
+    .trim();
+}
+
 export default async function handler(req, res) {
   // CORS preflight: the widget may be served from a different origin than
   // this API (e.g. embedded via the standalone widget domain), which makes
@@ -210,7 +249,7 @@ export default async function handler(req, res) {
     const data = await response.json();
     const raw = data.choices?.[0]?.message?.content || '';
     const { reply, stepAnswered, matchedOption, redirected, collectContact, refused } = extractStepSignal(raw, !!stepContext);
-    return res.status(200).json({ reply: reply.replace(/—/g, ','), stepAnswered, matchedOption, redirected, collectContact, refused });
+    return res.status(200).json({ reply: stripMarkdown(reply.replace(/—/g, ',')), stepAnswered, matchedOption, redirected, collectContact, refused });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
