@@ -1,3 +1,12 @@
+> **⚠️ STALE — DO NOT USE FOR CURRENT BEHAVIOR.** This report describes an
+> earlier architecture (EmailJS client-side lead delivery, no AI/OpenAI
+> conversation layer) that no longer matches the code. The current widget
+> uses `api/send-lead.js` (SendGrid, server-side) and `api/chat.js`
+> (OpenAI-backed conversation, knowledge-base retrieval, step-signal marker
+> protocol). See `brain.md` §9 for details. Kept only as historical record.
+> For the current, verified production-readiness status, see the chatbot
+> QA reports in project history.
+
 # Chatbot Production Readiness Report
 
 Scope: standalone embeddable chatbot widget (`chatbot-widget/`), built from

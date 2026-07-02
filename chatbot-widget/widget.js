@@ -70,15 +70,22 @@
     'flex-shrink:0!important;display:block!important;border:2px solid #fff!important;align-self:flex-end;';
   var WRAP_STYLE =
     'display:flex!important;align-items:flex-end!important;gap:8px!important;max-width:88%!important;';
+  /* background/color are deliberately NOT inline here (unlike every other
+   * property) — they're left to the .cb-bot-msg / .cb-user-msg CSS classes
+   * (also applied on these same elements) specifically so the
+   * prefers-color-scheme:dark media query in CSS can actually govern them.
+   * An inline !important, even matched by an external !important rule,
+   * always wins over the stylesheet regardless of media query state — so
+   * keeping these two properties inline would make dark mode permanently
+   * unreachable for message bubbles no matter what the CSS says. */
   var BOT_STYLE =
-    'background:rgba(255,255,255,0.88)!important;padding:10px 14px!important;' +
+    'padding:10px 14px!important;' +
     'border-radius:4px 18px 18px 18px!important;font-size:13.5px!important;' +
-    'color:#1e2024!important;line-height:1.65!important;' +
+    'line-height:1.65!important;' +
     'box-shadow:0 2px 8px rgba(0,0,0,0.06)!important;flex:1!important;' +
     'display:block!important;word-break:break-word!important;';
   var USER_STYLE =
-    'background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;' +
-    'color:#fff!important;padding:10px 16px!important;' +
+    'padding:10px 16px!important;' +
     'border-radius:18px 18px 4px 18px!important;align-self:flex-end!important;' +
     'max-width:76%!important;font-size:13.5px!important;line-height:1.55!important;' +
     'box-shadow:0 4px 14px rgba(1,84,177,0.25)!important;display:block!important;word-break:break-word!important;';
@@ -220,7 +227,7 @@
     + '.cb-gc-yn button:hover{background:#0154B1;color:#fff;}'
     + '.cb-gc-input{display:flex;align-items:center;border:1.5px solid #e7eaf0;border-radius:24px;padding:6px 6px 6px 16px;}'
     + '.cb-gc-input input{flex:1;border:none;outline:none;font-size:13.5px;font-family:"Outfit",sans-serif;color:#111;background:transparent;}'
-    + '.cb-gc-input input::placeholder{color:#b3b9c4;}'
+    + '.cb-gc-input input::placeholder{color:#6b7078;}'
     + '.cb-gc-input button{width:32px;height:32px;border-radius:50%;background:#f0f3f8;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#0154B1;transition:background .18s;}'
     + '.cb-gc-input button:hover{background:#0154B1;color:#fff;}'
     + '#lead-bot{position:fixed;bottom:24px;right:24px;z-index:2147483646;padding:3px;border-radius:25px;background:transparent;box-shadow:0 32px 80px rgba(0,0,0,0.16);animation:cb-pop-in .35s cubic-bezier(.34,1.56,.64,1) both;}'
@@ -229,7 +236,7 @@
     + '@keyframes cb-border-flow{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}'
     + '.cb-card{width:360px;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.62);backdrop-filter:blur(8px) saturate(1.4);-webkit-backdrop-filter:blur(8px) saturate(1.4);box-shadow:0 6px 20px rgba(1,84,177,0.10),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;max-height:calc(100vh - 65px);height:635px;font-family:"Outfit",sans-serif;box-sizing:border-box;}'
     + '.cb-card *{box-sizing:border-box;}'
-    + '.cb-header{background:linear-gradient(135deg,#0154B1 0%,#1a7fe8 100%);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}'
+    + '.cb-header{background:linear-gradient(135deg,#0154B1 0%,#0e58a3 100%);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}'
     + '.cb-user{display:flex;gap:11px;align-items:center;}'
     + '.cb-avatar-wrap{position:relative;flex-shrink:0;}'
     + '.cb-avatar-wrap img{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);display:block;}'
@@ -239,7 +246,10 @@
     + '.cb-ch-status::before{content:"";display:inline-block;width:6px;height:6px;background:#22c55e;border-radius:50%;}'
     + '.cb-close-btn{cursor:pointer;font-size:23px;color:#fff;line-height:1;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s,color .15s;user-select:none;border:none;background:transparent;padding:0;flex-shrink:0;}'
     + '.cb-close-btn:hover{background:rgba(255,255,255,.15);color:#fff;}'
-    + '#cb-top-section{display:none;background:linear-gradient(135deg,#0154B1 0%,#1a7fe8 100%);flex-shrink:0;}'
+    + '.cb-restart-btn{cursor:pointer;line-height:1;width:30px;height:30px;display:flex!important;align-items:center;justify-content:center;border-radius:50%;transition:background .15s;user-select:none;border:none;background:transparent;padding:0;flex-shrink:0;margin-right:2px;}'
+    + '.cb-restart-btn:hover{background:rgba(255,255,255,.15);}'
+    + '.cb-restart-btn svg{width:16px!important;height:16px!important;display:block!important;pointer-events:none;}'
+    + '#cb-top-section{display:none;background:linear-gradient(135deg,#0154B1 0%,#0e58a3 100%);flex-shrink:0;}'
     + '.cb-top-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;}'
     + '#cb-welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px 28px;background:transparent;flex:1;text-align:center;}'
     + '.cb-welcome-av-wrap{position:relative;display:inline-block;margin-bottom:14px;}'
@@ -256,7 +266,7 @@
     + '.cb-bot-msg-wrap{display:flex!important;align-items:flex-end!important;gap:8px!important;max-width:88%!important;animation:cb-msg-in .25s ease both;}'
     + '.cb-bot-msg-wrap img{width:28px!important;height:28px!important;min-width:28px!important;max-width:28px!important;border-radius:50%!important;object-fit:cover!important;flex-shrink:0!important;border:2px solid #fff!important;display:block!important;align-self:flex-end!important;}'
     + '.cb-bot-msg{background:rgba(255,255,255,.88)!important;padding:10px 14px!important;border-radius:4px 18px 18px 18px!important;font-size:13.5px!important;color:#1e2024!important;line-height:1.65!important;box-shadow:0 2px 8px rgba(0,0,0,.06)!important;word-break:break-word!important;animation:cb-msg-in .25s ease both;}'
-    + '.cb-user-msg{background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;color:#fff!important;padding:10px 16px!important;border-radius:18px 18px 4px 18px!important;align-self:flex-end!important;max-width:76%!important;font-size:13.5px!important;line-height:1.55!important;box-shadow:0 4px 14px rgba(1,84,177,.25)!important;display:block!important;word-break:break-word!important;animation:cb-msg-in .25s ease both;}'
+    + '.cb-user-msg{background:linear-gradient(135deg,#0154B1,#0e58a3)!important;color:#fff!important;padding:10px 16px!important;border-radius:18px 18px 4px 18px!important;align-self:flex-end!important;max-width:76%!important;font-size:13.5px!important;line-height:1.55!important;box-shadow:0 4px 14px rgba(1,84,177,.25)!important;display:block!important;word-break:break-word!important;animation:cb-msg-in .25s ease both;}'
     + '.cb-typing-wrap{display:flex!important;align-items:flex-end!important;gap:8px!important;max-width:88%!important;animation:cb-msg-in .2s ease both;}'
     + '.cb-typing-wrap img{width:28px!important;height:28px!important;min-width:28px!important;border-radius:50%!important;object-fit:cover!important;flex-shrink:0!important;border:2px solid #fff!important;display:block!important;align-self:flex-end!important;}'
     + '.cb-typing{display:flex;gap:5px;padding:12px 16px;align-items:center;background:rgba(255,255,255,.88);border-radius:4px 18px 18px 18px;box-shadow:0 2px 8px rgba(0,0,0,.06);}'
@@ -272,20 +282,29 @@
     + '.cb-back-btn:hover{background:#0154B1!important;color:#fff!important;border-color:#0154B1!important;box-shadow:0 4px 14px rgba(1,84,177,.22)!important;transform:translateY(-1px)!important;}'
     + '.cb-cta-btns{display:flex;flex-direction:column;gap:8px;animation:cb-msg-in .3s ease both;}'
     + '.cb-cta-btns button{border:none;padding:12px 16px;border-radius:20px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:"Outfit",sans-serif;transition:all .2s;width:100%;text-align:center;}'
-    + '.cb-cta-primary{background:linear-gradient(135deg,#F09300,#f5a623);color:#fff;box-shadow:0 4px 14px rgba(240,147,0,.35);}'
+    + '.cb-cta-primary{background:linear-gradient(135deg,#F09300,#f5a623);color:#3d1f00;box-shadow:0 4px 14px rgba(240,147,0,.35);}'
     + '.cb-cta-primary:hover{filter:brightness(.93);transform:translateY(-1px);}'
     + '.cb-cta-secondary{background:#f0f6ff;color:#0154B1;border:1.5px solid #cce0f5;}'
     + '.cb-cta-secondary:hover{background:#0154B1;color:#fff;border-color:#0154B1;}'
     + '.cb-input-bar{display:none;align-items:center;gap:8px;padding:18px 12px 20px;border-top:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.45);flex-shrink:0;}'
     + '.cb-input-bar input{flex:1;border:1.5px solid rgba(255,255,255,.5);outline:none;border-radius:18px;padding:10px 16px;font-family:"Outfit",sans-serif;font-size:13.5px;color:#111827;background:rgba(255,255,255,.82);transition:border-color .2s,box-shadow .2s;}'
     + '.cb-input-bar input:focus{border-color:#0154B1;background:rgba(255,255,255,.95);box-shadow:0 0 0 3px rgba(1,84,177,.1);}'
-    + '.cb-input-bar input::placeholder{color:#aab0bc;}'
+    + '.cb-input-bar input::placeholder{color:#6b7078;}'
+    + '.cb-input-bar input:disabled{background:rgba(230,232,236,.75);color:#8a8f99;cursor:not-allowed;}'
     + '.cb-input-bar button{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;color:#fff!important;border:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;transition:all .2s;box-shadow:0 3px 10px rgba(1,84,177,.32)!important;opacity:1!important;visibility:visible!important;overflow:visible!important;padding:0!important;}'
     + '.cb-input-bar button:hover{transform:scale(1.08);}'
     + '.cb-input-bar button:active{transform:scale(.95);}'
+    + '.cb-input-bar button:disabled{background:#c7ccd4!important;box-shadow:none!important;cursor:not-allowed!important;opacity:.6!important;transform:none!important;}'
+    + '.cb-input-bar button:disabled:hover{transform:none!important;}'
     + '#cb-send svg{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;flex-shrink:0!important;opacity:1!important;visibility:visible!important;overflow:visible!important;fill:none!important;stroke:#fff!important;stroke-width:2.5!important;pointer-events:none!important;}'
     + '#cb-send svg *{stroke:#fff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#0154B1,#1a7fe8)!important;border:none!important;display:flex!important;align-items:center!important;justify-content:center!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#fff!important;}'
+    /* Matches the triple-ID specificity of the rule above so a disabled send
+     * button is actually visually distinct instead of being forced back to
+     * opacity:1/full brand gradient by it — a plain .cb-input-bar
+     * button:disabled rule loses to #lead-bot #cb-input-bar#cb-input-bar
+     * button#cb-send on specificity regardless of source order. */
+    + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send:disabled{background:#c7ccd4!important;box-shadow:none!important;cursor:not-allowed!important;opacity:.6!important;}'
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;fill:none!important;stroke:#ffffff!important;stroke-width:2.5!important;opacity:1!important;visibility:visible!important;overflow:visible!important;color:#ffffff!important;}'
     + '#lead-bot #cb-input-bar#cb-input-bar button#cb-send svg#cb-send-icon *{stroke:#ffffff!important;fill:none!important;opacity:1!important;visibility:visible!important;display:inline!important;}'
     + '.cb-schedule-wrap{display:none;flex-shrink:0;}'
@@ -316,7 +335,45 @@
      * the bottom CTA bar's corners. Squaring it off (border-radius:0) keeps
      * the same glow/colors/animation, just following the widget's actual
      * sharp mobile corners instead of fighting them. */
-    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;border-radius:0;}#lead-bot::before{border-radius:0;}.cb-card{width:100%!important;height:100%!important;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}';
+    + '@media (max-width:768px){#cb-backdrop{display:block;}#lead-bot{top:0;bottom:0;right:0;left:0;width:100%;animation:none;display:flex;align-items:stretch;justify-content:stretch;padding:0;background:none;box-shadow:none;border-radius:0;}#lead-bot::before{border-radius:0;}.cb-card{width:100%!important;height:100%!important;max-height:none!important;border-radius:0;overflow:hidden;border:none;}.cb-body{flex:1 1 auto!important;max-height:none!important;min-height:0!important;}.cb-qbtns button,.cb-bbtns button{font-size:13.5px!important;padding:11px 12px!important;min-height:48px!important;}.cb-input-bar{padding:12px!important;}.cb-input-bar input{font-size:15px;box-sizing:border-box;padding:12px 16px;}#cb-greeting-bubble{right:88px;bottom:16px;max-width:calc(100vw - 170px);}#cb-greeting-card{right:8px;left:8px;width:auto;bottom:16px;}#bot-launcher{bottom:16px;right:16px;width:60px;height:60px;z-index:2147483646;}#bot-launcher img{width:54px;height:54px;}.cb-online-dot{bottom:2px;right:2px;width:12px;height:12px;}.cb-launcher-badge{width:16px;height:16px;font-size:9px;border-width:1.5px;top:0;right:0;}}'
+    /* Dark mode: mirrors the OS/browser color-scheme preference so the
+     * widget doesn't stay a glaring white card on a dark host page/OS.
+     * Every color below was picked and verified against WCAG AA contrast
+     * (see chatbot-widget QA notes) — this is a real theme, not a quick
+     * opacity flip, so text stays readable rather than just inverted. */
+    + '@media (prefers-color-scheme:dark){'
+    + '.cb-card{background:rgba(28,30,34,0.86);}'
+    + '#cb-greeting-card{background:#1c1e22;}'
+    + '.cb-gc-name{color:#f2f2f2;}'
+    + '.cb-gc-time{color:#9aa1ad;}'
+    + '.cb-gc-close{color:#767b85;}'
+    + '.cb-gc-close:hover{color:#aab0bc;}'
+    + '.cb-gc-question{color:#f2f2f2;}'
+    + '.cb-gc-yn button{background:#26344a;color:#7fb3ff;}'
+    + '.cb-gc-yn button:hover{background:#0154B1;color:#fff;}'
+    + '.cb-gc-input{border-color:#3a3d44;}'
+    + '.cb-gc-input input{color:#f2f2f2;}'
+    + '.cb-gc-input input::placeholder{color:#9096a0;}'
+    + '.cb-gc-input button{background:#2a2d33;color:#7fb3ff;}'
+    + '.cb-gc-input button:hover{background:#0154B1;color:#fff;}'
+    + '.cb-welcome-name{color:#f2f2f2;}'
+    + '.cb-welcome-role{color:#a9adb5;}'
+    + '.cb-welcome-fine{color:#767b85;}'
+    + '.cb-body{background:rgba(24,26,30,.78)!important;}'
+    + '.cb-bot-msg,.cb-typing{background:rgba(40,43,49,.92)!important;color:#e8eaed!important;}'
+    + '.cb-qbtns button,.cb-bbtns button,.cb-back-btn{background:rgba(40,43,49,.92)!important;color:#7fb3ff!important;border-color:#3a3d44!important;}'
+    + '.cb-qbtns button:hover,.cb-bbtns button:hover,.cb-back-btn:hover{background:#0154B1!important;color:#fff!important;border-color:#0154B1!important;}'
+    + '.cb-cta-secondary{background:#232733;color:#7fb3ff;border-color:#3a3d44;}'
+    + '.cb-cta-secondary:hover{background:#0154B1;color:#fff;border-color:#0154B1;}'
+    + '.cb-input-bar{background:rgba(24,26,30,.6)!important;border-top-color:rgba(255,255,255,.08)!important;}'
+    + '.cb-input-bar input{background:rgba(40,43,49,.88)!important;color:#e8eaed!important;border-color:rgba(255,255,255,.14)!important;}'
+    + '.cb-input-bar input::placeholder{color:#9096a0!important;}'
+    + '.cb-input-bar input:disabled{background:rgba(50,52,58,.7)!important;color:#6b6f78!important;}'
+    + '.cb-teaser-bubble{background:#1c1e22;}'
+    + '.cb-teaser-bubble p{color:#e8eaed;}'
+    + '.cb-bubble-close{color:#767b85;}'
+    + '.cb-bubble-close:hover{color:#aab0bc;}'
+    + '}';
 
   function injectStyles() {
     if (!document.getElementById('cb-font-link')) {
@@ -341,6 +398,15 @@
     var launcher = document.createElement('div');
     launcher.id = 'bot-launcher';
     launcher.style.display = 'none';
+    /* Keyboard/AT accessibility: this div is the ONLY way to open the widget
+     * once the teaser has been dismissed or timed out, so it must be reachable
+     * and operable without a mouse (WCAG 2.1.1). role+tabindex put it in the
+     * tab order and expose it as a button to screen readers; the keydown
+     * handler (wired below, alongside launcherClick) makes Enter/Space
+     * activate it the same way a native <button> would. */
+    launcher.setAttribute('role', 'button');
+    launcher.setAttribute('tabindex', '0');
+    launcher.setAttribute('aria-label', 'Open chat with ' + BOT_NAME);
     launcher.innerHTML =
       '<img src="' + AVATAR_URL + '" alt="' + BOT_NAME + '" onerror="this.src=\'' + AVATAR_FB + '\'" />' +
       '<span class="cb-online-dot"></span>' +
@@ -360,7 +426,12 @@
             '</div>' +
             '<div><div class="cb-ch-name">' + BOT_NAME + '</div><div class="cb-ch-status">' + BOT_TITLE + '</div></div>' +
           '</div>' +
-          '<button class="cb-close-btn" id="cb-close-compact" aria-label="Close chat">&#x00D7;</button>' +
+          '<div style="display:flex!important;align-items:center;">' +
+            '<button class="cb-restart-btn" id="cb-restart-compact" aria-label="Start new conversation" title="Start new conversation">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>' +
+            '</button>' +
+            '<button class="cb-close-btn" id="cb-close-compact" aria-label="Close chat">&#x00D7;</button>' +
+          '</div>' +
         '</div>' +
         '<div id="cb-top-section">' +
           '<div class="cb-top-row">' +
@@ -371,7 +442,12 @@
               '</div>' +
               '<div><div class="cb-ch-name">' + BOT_NAME + '</div><div class="cb-ch-status">' + BOT_TITLE + '</div></div>' +
             '</div>' +
-            '<button class="cb-close-btn" id="cb-close-expanded" aria-label="Close chat">&#x00D7;</button>' +
+            '<div style="display:flex!important;align-items:center;">' +
+              '<button class="cb-restart-btn" id="cb-restart-expanded" aria-label="Start new conversation" title="Start new conversation">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>' +
+              '</button>' +
+              '<button class="cb-close-btn" id="cb-close-expanded" aria-label="Close chat">&#x00D7;</button>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div id="cb-welcome">' +
@@ -397,7 +473,7 @@
         '</div>' +
         '<div class="cb-input-bar" id="cb-input-bar" style="display:flex!important;align-items:center;gap:8px;padding:18px 12px 20px;border-top:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.45);flex-shrink:0;">' +
           '<input type="text" id="cb-input" placeholder="Type your answer..." autocomplete="off" />' +
-          '<button id="cb-send" aria-label="Send" style="opacity:1!important;visibility:visible!important;">' +
+          '<button id="cb-send" aria-label="Send">' +
             '<svg id="cb-send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;opacity:1!important;visibility:visible!important;">' +
               '<line x1="12" y1="19" x2="12" y2="5" style="stroke:#fff!important;opacity:1!important;"/><polyline points="5 12 12 5 19 12" style="stroke:#fff!important;opacity:1!important;"/>' +
             '</svg>' +
@@ -2253,10 +2329,56 @@
       }
     }
 
+    /* ── RESTART / RESET ──
+     * QA feedback (Aditya Tupe report): once a visitor got stuck deep in
+     * the conversation (or past lead capture), there was no way to start
+     * over short of scrolling back up or reloading the whole host page.
+     * This clears everything qualification-related (step, lead answers,
+     * chatHistory, transcript, in-flight correction/refusal state, the
+     * ctaHandled guard) and re-renders the exact same intro bubble + step-0
+     * buttons the widget shows on a first-ever load, then persists that
+     * fresh state as a new session so a refresh afterward resumes the NEW
+     * conversation, not the cleared one. UTM/page attribution on `lead` is
+     * intentionally left untouched, only the visitor's own answers reset,
+     * since that data describes how they arrived, not what they've said. */
+    function resetConversation() {
+      if (!window.confirm('Start a new conversation? This will clear your current chat.')) return;
+      clearSession();
+      clearTimeout(idleTimer);
+      awaitingIdleResponse = false;
+      idleReminderShown = false;
+      correctingField = null;
+      nameRefusalAcknowledged = false;
+      ctaHandled = false;
+      aiRequestInFlight = false;
+      handleInputInFlight = false;
+      step = 0;
+      chatHistory = [];
+      transcript = [];
+      lead.intent = ''; lead.intent_detail = ''; lead.budget = ''; lead.project_notes = '';
+      lead.name = ''; lead.phone = ''; lead.email = ''; lead.cta_choice = '';
+
+      msgs.innerHTML = '';
+      addBotMsg('Hello! What kind of project do you need help bringing to life?');
+      renderStep0Buttons();
+
+      inputEl.disabled = false;
+      inputEl.placeholder = 'Type your answer...';
+      var sendBtn = document.querySelector('#cb-input-bar button');
+      if (sendBtn) sendBtn.disabled = false;
+      showInputBar();
+      resetIdleTimer();
+    }
+
     /* ── WIRE UP DOM EVENTS ── */
     document.getElementById('cb-close-compact').onclick  = toggleBot;
     document.getElementById('cb-close-expanded').onclick = toggleBot;
+    document.getElementById('cb-restart-compact').onclick  = resetConversation;
+    document.getElementById('cb-restart-expanded').onclick = resetConversation;
     document.getElementById('bot-launcher').onclick      = launcherClick;
+    document.getElementById('bot-launcher').onkeydown    = function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); launcherClick(); }
+    };
     document.getElementById('cb-backdrop').onclick       = toggleBot;
     document.getElementById('cb-send').onclick           = handleInput;
     inputEl.addEventListener('keypress', function (e) { if (e.key === 'Enter') handleInput(); });

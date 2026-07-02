@@ -15,9 +15,23 @@ const LEAD_FIELDS = [
   'utm_source', 'utm_campaign', 'utm_medium', 'utm_term', 'utm_content', 'gclid',
 ];
 
+// Lead field values come straight from an anonymous website visitor and are
+// inserted into HTML emails opened in a real mail client — without escaping,
+// a name/notes value like "<script>..." or "<img onerror=...>" is injected
+// as live markup into both the internal notification email and (via
+// user_name) the visitor's own confirmation email.
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function fillTemplate(html, data) {
   return html.replace(/\{\{(\w+)\}\}/g, function (_match, key) {
-    return data[key] !== undefined && data[key] !== null && data[key] !== '' ? String(data[key]) : '';
+    return data[key] !== undefined && data[key] !== null && data[key] !== '' ? escapeHtml(data[key]) : '';
   });
 }
 

@@ -1,3 +1,10 @@
+> **⚠️ STALE — DO NOT USE FOR CURRENT BEHAVIOR.** This audit describes an
+> earlier architecture (EmailJS client-side lead delivery, no AI/OpenAI
+> conversation layer) that no longer matches the code. The current widget
+> uses `api/send-lead.js` (SendGrid, server-side) and `api/chat.js`
+> (OpenAI-backed conversation). See `brain.md` §9 for details. Kept only as
+> historical record of an earlier iteration.
+
 # Final Pre-Deployment Audit — chatbot-widget
 
 Date: 2026-06-15

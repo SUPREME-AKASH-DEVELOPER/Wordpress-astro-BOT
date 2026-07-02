@@ -184,6 +184,25 @@ is a keyword denylist (not AI) that detects "wrong email", "update my phone",
 etc., and walks the user through naming the field then supplying a new value
 (`correctingField` state var: `null` | `'pending-field-name'` | `'name'|'phone'|'email'`).
 
+### Restart / reset (`resetConversation`)
+
+Added in response to a QA report (Aditya Tupe) flagging no way to start over
+once stuck deep in a conversation. A small circular-arrow icon button sits
+next to the close (×) button in both the compact (`#cb-restart-compact`) and
+expanded (`#cb-restart-expanded`) headers. `resetConversation()` (defined at
+the end of `init()`, wired alongside the close buttons) does a native
+`window.confirm()` gate, then clears session storage, resets `step` to 0 and
+every qualification-flow state var (`correctingField`,
+`nameRefusalAcknowledged`, `ctaHandled`, `aiRequestInFlight`,
+`handleInputInFlight`, idle-timer flags), empties `chatHistory`/`transcript`,
+blanks the visitor-answer fields on `lead` (intent/budget/notes/name/phone/
+email/cta_choice — UTM/page attribution is deliberately left alone), wipes
+`#cb-messages` and re-renders the exact same intro bubble + step-0 buttons
+the widget shows on first load, then re-enables the input bar. Does NOT reset
+`expanded` (header stays in whichever mode it was already in) or
+`conversationStarted` (the widget is already open, so there's no teaser to
+resume into).
+
 ### Teaser / engagement funnel (pre-conversation)
 
 `launch()` → after 800ms shows `showGreetingCard()` (big card, Yes/No +
@@ -330,3 +349,80 @@ flag this gap first.
   `handleInputInFlight`, `aiRequestInFlight`) exist specifically to stop
   duplicate submissions/AI calls from double-clicks or double-Enter — don't
   remove without understanding the race they close.
+
+## 11. Production QA pass (this session) — fixes applied
+
+A full QA sweep (unit tests against the real `api/*` handlers with mocked
+`fetch`/`sgMail.send`, plus Playwright E2E against the real widget) found and
+fixed several real issues, all re-verified live afterward:
+
+- **Mobile full-screen gap**: base `.cb-card{max-height:calc(100vh - 65px)}`
+  wasn't reset inside `@media (max-width:768px)` (only `height:100%` was) —
+  left a 65px gap at the bottom of the full-screen mobile chat where the host
+  page bled through. Fixed by adding `max-height:none!important` to the
+  mobile `.cb-card` rule.
+- **Launcher keyboard accessibility**: `#bot-launcher` was a plain
+  `<div onclick>` with no `role`/`tabindex`/`aria-label` — the *only* way to
+  open the widget once the teaser is dismissed, and totally unreachable by
+  keyboard/screen-reader. Added `role="button"`, `tabindex="0"`,
+  `aria-label`, and an `onkeydown` handler (Enter/Space) alongside the
+  existing `onclick`.
+- **Contrast failures (calculated via real WCAG relative-luminance, not
+  eyeballed)**: CTA primary button text was white-on-orange (as low as
+  2.03:1) — changed text color to `#3d1f00` (dark brown, 6.4–7.4:1). Header
+  gradient's light-end stop `#1a7fe8` was too light for the subtitle/user
+  message text sitting on it — darkened to `#0e58a3` in the 4 text-bearing
+  contexts only (`.cb-header`, `#cb-top-section`, `.cb-user-msg`,
+  `USER_STYLE`); `.cb-input-bar button`'s icon-only use of `#1a7fe8` was left
+  alone (icons only need 3:1, already passing at 4.0:1). Placeholder text
+  darkened from `#aab0bc`/`#b3b9c4` to `#6b7078` — the composited background
+  behind the input is effectively pure white once you walk the actual
+  ancestor chain (translucent-white-over-translucent-white converges to
+  white fast), so don't re-derive this from a guessed page-bg color, walk
+  the real chain if you touch it again.
+- **Disabled send button had no visual state** — `opacity:1!important` was
+  set BOTH as an inline `style=` attribute on the static `<button id="cb-send">`
+  markup AND duplicated in the ultra-high-specificity
+  `#lead-bot #cb-input-bar#cb-input-bar button#cb-send` ID-chain rule. Inline
+  `!important` always beats external `!important` regardless of specificity,
+  so no CSS-only `:disabled` rule could ever have worked while that inline
+  attribute existed. Removed the inline duplicate, added
+  `#lead-bot #cb-input-bar#cb-input-bar button#cb-send:disabled{...}`
+  (matching the same ID-chain specificity) with gray background/reduced
+  opacity/`not-allowed` cursor.
+- **Dark mode**: didn't exist at all. Added a `@media (prefers-color-scheme:dark)`
+  block with WCAG-checked colors. Hit the *same* inline-`!important`-beats-CSS
+  problem for message bubbles specifically: `BOT_STYLE`/`USER_STYLE` (the JS
+  string constants applied via `setAttribute('style', ...)` in
+  `buildBotMsgBubble`/`addUserMsg`) baked `background`/`color` in inline with
+  `!important`, so no stylesheet rule — dark-mode or otherwise — could ever
+  override them. Fixed by removing just those two properties from the inline
+  strings (everything else stays inline for host-page CSS isolation) and
+  letting `.cb-bot-msg`/`.cb-user-msg` (already applied via `className`
+  alongside the inline style) govern them instead. **If you add a new inline
+  `style=` string anywhere in this file with `background`/`color`/anything
+  else that should ever be theme- or state-dependent, do not give it
+  `!important` inline** — it will silently defeat every stylesheet rule
+  written for it afterward, dark mode included, and the only symptom is "my
+  new CSS rule parses fine and matches but does nothing," which is a
+  confusing thing to debug from the CSS side alone.
+- **Email HTML injection**: `fillTemplate()` in `api/send-lead.js` inserted
+  lead field values (name, notes, etc. — all visitor-controlled) into the
+  outgoing HTML emails without escaping. A name like `<script>...</script>`
+  landed verbatim in the notification email your team opens. Added
+  `escapeHtml()`, applied before substitution.
+- **`avatar-alex.png` was 1254×1254px / 2.13MB** displayed at a max of 92px
+  anywhere in the UI. Resized in place (same filename, same format) to
+  240×240 / ~36KB via `sharp`. No code changes needed since nothing else
+  referenced its dimensions.
+- **Favicon 404** on the demo page — added `<link rel="icon" href="data:,">`
+  to `index.html` so the browser doesn't auto-request `/favicon.ico`. Doesn't
+  affect real embeds (those request favicon.ico from the *host* page's own
+  origin, not this one).
+- Added a "Start new conversation" restart icon (see the restart section
+  above) — already covered there.
+
+All of the above were re-verified with live browser tests after fixing, not
+assumed from the code change alone (real computed styles, real contrast
+math against the real composited background, real keyboard-only interaction
+flows, real dark-mode-emulated screenshots).
